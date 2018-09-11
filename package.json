@@ -1,0 +1,26 @@
+{
+	"name": "bytearray-node",
+	"version": "1.0.1",
+	"description": "Pure DataView implementation of the AS3 ByteArray",
+	"main": "src/ByteArray.js",
+	"homepage": "https://github.com/Zaseth/bytearray-node",
+	"directories": {
+		"test": "test"
+	},
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/Zaseth/bytearray-node"
+	},
+	"bugs": {
+		"url": "https://github.com/Zaseth/bytearray-node/issues"
+	},
+	"keywords": [
+		"ByteArray",
+		"Actionscript"
+	],
+	"author": "Zaseth",
+	"license": "MIT"
+}
