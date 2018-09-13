@@ -10,7 +10,7 @@ const convertArrayBufferToByteArray = () => {
 
 	const ba = new ByteArray(arb)
 
-	console.log(ba.readDouble())
+	console.log(ba.readDouble()) // 123.456
 }
 
 const convertDataViewToByteArray = () => {
@@ -22,17 +22,17 @@ const convertDataViewToByteArray = () => {
 
 	const ba = new ByteArray(buf)
 
-	console.log(ba.readBytes(0, 3)) // [1, 2, 3]
+	console.log(ba.readArrayOfBytes(0, 3)) // [1, 2, 3]
 }
 
 const multipleByteArrays = () => {
 	const ba = new ByteArray()
 
-	ba.writeBytes([1, 2, 3])
+	ba.writeArrayOfBytes([1, 2, 3])
 
 	const rb = new ByteArray(ba)
 
-	console.log(rb.readBytes(0, 3)) // [1, 2, 3]
+	console.log(rb.readArrayOfBytes(0, 3)) // [1, 2, 3]
 }
 
 const exampleWriteRead = () => {

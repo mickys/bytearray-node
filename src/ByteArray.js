@@ -11,12 +11,9 @@ class ByteArray {
 			} else if (bufType === "DataView" && bufArgu.byteLength !== 0) {
 				this.arb = bufArgu.buffer
 				this.buf = bufArgu
-			} else if (bufArgu.constructor.name === "ByteArray" && bufArgu.buf.byteLength !== 0) {
+			} else if (bufType === "ByteArray" && bufArgu.buf.byteLength !== 0) {
 				this.arb = bufArgu.buf.buffer
 				this.buf = bufArgu.buf
-
-				this.writePos = 0
-				this.readPos = 0
 			}
 		} else {
 			this.arb = new ArrayBuffer(byteLength)
@@ -34,6 +31,10 @@ class ByteArray {
 
 	get bytesAvailable() {
 		return this.length - (this.writePos + this.readPos)
+	}
+
+	set endian(endian) {
+		this.littleEndian = endian
 	}
 
 	incrementPosition(whatPos, toIncrement) {
@@ -54,17 +55,17 @@ class ByteArray {
 		for (let i = 0; i < bytes.length; i++) {
 			const byte = bytes[i]
 
-			if (byte < 0x80) {
+			if (byte < 128) {
 				val += String.fromCharCode(byte)
-			} else if (byte > 0xbf && byte < 0xe0) {
-				val += String.fromCharCode((byte & 0x1f) << 6 | bytes[i + 1] & 0x3f)
+			} else if (byte > 191 && byte < 224) {
+				val += String.fromCharCode((byte & 31) << 6 | bytes[i + 1] & 63)
 				i += 1
-			} else if (byte > 0xdf && byte < 0xf0) {
-				val += String.fromCharCode((byte & 0x0F) << 12 | (bytes[i + 1] & 0x3F) << 6 | bytes[i + 2] & 0x3F)
+			} else if (byte > 223 && byte < 240) {
+				val += String.fromCharCode((byte & 15) << 12 | (bytes[i + 1] & 63) << 6 | bytes[i + 2] & 63)
 				i += 2
 			} else {
-				const char = ((byte & 0x07) << 18 | (bytes[i + 1] & 0x3f) << 12 | (bytes[i + 2] & 0x3f) << 6 | bytes[i + 3] & 0x3f) - 0x010000
-				val += String.fromCharCode(char >> 10 | 0xd800, char & 0x03ff | 0xdc00)
+				const char = ((byte & 7) << 18 | (bytes[i + 1] & 63) << 12 | (bytes[i + 2] & 63) << 6 | bytes[i + 3] & 63) - 65536
+				val += String.fromCharCode(char >> 10 | 55296, char & 1023 | 56320)
 				i += 3
 			}
 		}
@@ -78,20 +79,24 @@ class ByteArray {
 		for (let i = 0; i < val.length; i++) {
 			let char = val.charCodeAt(i)
 
-			if (char < 0x80) {
+			if (char < 128) {
 				bytes.push(char)
-			} else if (char < 0x800) {
-				bytes.push(0xc0 | (char >> 6), 0x80 | (char & 0x3f))
-			} else if (char < 0xd800 || char >= 0xe000) {
-				bytes.push(0x0e | (char >> 12), 0x80 | ((char >> 6) & 0x3f), 0x80 | (char & 0x3f))
+			} else if (char < 2048) {
+				bytes.push(192 | (char >> 6), 128 | (char & 63))
+			} else if (char < 55296 || char >= 57344) {
+				bytes.push(14 | (char >> 12), 128 | ((char >> 6) & 63), 128 | (char & 63))
 			} else {
 				i++;
-				char = 0x10000 + (((char & 0x3ff) << 10) | (val.charCodeAt(i) & 0x3ff))
-				bytes.push(0xf0 | (char >> 18), 0x80 | ((char >> 12) & 0x3f), 0x80 | ((char >> 6) & 0x3f), 0x80 | (char & 0x3f))
+				char = 65536 + (((char & 1023) << 10) | (val.charCodeAt(i) & 1023))
+				bytes.push(240 | (char >> 18), 128 | ((char >> 12) & 63), 128 | ((char >> 6) & 63), 128 | (char & 63))
 			}
 		}
 
 		return bytes
+	}
+
+	toBuffer() {
+		return Buffer.from(new Uint8Array(this.buf.buffer, 0, this.length))
 	}
 
 	readBoolean() {
@@ -104,14 +109,12 @@ class ByteArray {
 		return this.buf.getInt8(this.readPos++)
 	}
 
-	readBytes(start, end) {
-		const buf = []
+	readBytes(bytearray, offset = 0, length = 0) {
+		if (offset < 0 || length < 0) return
 
-		for (let i = start; i < end; i++) {
-			buf.push(this.readByte())
+		for (let i = offset; i < length; i++) {
+			bytearray.writeByte(this.readByte())
 		}
-
-		return buf
 	}
 
 	readDouble() {
@@ -196,6 +199,47 @@ class ByteArray {
 		return this.readUTF(len)
 	}
 
+	readArrayOfBytes(start, end) {
+		const buf = []
+
+		for (let i = start; i < end; i++) {
+			buf.push(this.readByte())
+		}
+
+		return buf
+	}
+
+	readASCII(len) {
+		let val = ""
+
+		len = len || this.readShort()
+
+		for (let i = 0; i < len; i++) {
+			val += String.fromCharCode(this.readByte())
+		}
+
+		return val
+	}
+
+	readUInt29() {
+		let byte = this.readUnsignedByte()
+		if (byte < 128) return byte
+
+		let ref = (byte & 127) << 7
+		byte = this.readUnsignedByte()
+
+		if (byte < 128) return (ref | byte)
+		ref = (ref | (byte & 127)) << 7
+
+		byte = this.readUnsignedByte()
+		if (byte < 128) return (ref | byte)
+
+		ref = (ref | (byte & 127)) << 8
+		byte = this.readUnsignedByte()
+
+		return (ref | byte)
+	}
+
 	writeBoolean(val) {
 		this.writeByte(val ? 1 : 0)
 	}
@@ -206,10 +250,12 @@ class ByteArray {
 		this.buf.setInt8(this.writePos++, val)
 	}
 
-	writeBytes(bytes) {
-		bytes.forEach(byte => {
-			this.writeByte(byte)
-		})
+	writeBytes(bytearray, offset = 0, length = 0) {
+		if (offset < 0 || length < 0) return
+
+		for (let i = offset; i < length; i++) {
+			this.writeByte(bytearray.readByte())
+		}
 	}
 
 	writeDouble(val) {
@@ -280,6 +326,44 @@ class ByteArray {
 
 	writeUTFBytes(val) {
 		this.writeUTF(val, true)
+	}
+
+	writeArrayOfBytes(bytes) {
+		bytes.forEach(byte => {
+			this.writeByte(byte)
+		})
+	}
+
+	writeASCII(val) {
+		if (val.length > 65535) throw new RangeError("writeASCII only accepts strings with a length that is less than 65535")
+
+		this.writeShort(val.length)
+
+		for (let i = 0; i < val.length; i++) {
+			this.writeByte(val.charCodeAt(i))
+		}
+	}
+
+	writeUInt29(val) {
+		const arr = []
+
+		if (val < 128) {
+			this.writeUnsignedByte(val)
+		} else if (val < 16384) {
+			this.writeUnsignedByte(((val >> 7) & 127) | 128)
+			this.writeUnsignedByte(val & 127)
+		} else if (val < 2097152) {
+			this.writeUnsignedByte(((val >> 14) & 127) | 128)
+			this.writeUnsignedByte(((val >> 7) & 127) | 128)
+			this.writeUnsignedByte(val & 127)
+		} else if (val < 1073741824) {
+			this.writeUnsignedByte(((val >> 22) & 127) | 128)
+			this.writeUnsignedByte(((val >> 15) & 127) | 128)
+			this.writeUnsignedByte(((val >> 8) & 127) | 128)
+			this.writeUnsignedByte(val & 255)
+		} else {
+			throw new RangeError(`"${val}" is out of range`)
+		}
 	}
 }
 
