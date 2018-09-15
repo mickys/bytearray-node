@@ -1,5 +1,7 @@
 "use strict"
 
+const AMF0 = require("./AMF0")
+
 class ByteArray {
 	constructor(bufArgu, byteLength = 2048, littleEndian = false) {
 		if (bufArgu !== undefined) {
@@ -31,6 +33,14 @@ class ByteArray {
 
 	get bytesAvailable() {
 		return this.length - (this.writePos + this.readPos)
+	}
+
+	get bytes() {
+		return new Uint8Array(this.buf.buffer, 0, this.length)
+	}
+
+	get buffer() {
+		return Buffer.from(new Uint8Array(this.buf.buffer, 0, this.length))
 	}
 
 	set endian(endian) {
@@ -95,10 +105,6 @@ class ByteArray {
 		return bytes
 	}
 
-	toBuffer() {
-		return Buffer.from(new Uint8Array(this.buf.buffer, 0, this.length))
-	}
-
 	readBoolean() {
 		return this.readByte() ? true : false
 	}
@@ -145,6 +151,12 @@ class ByteArray {
 		this.incrementPosition("read", 3)
 
 		return val
+	}
+
+	readObject() {
+		const amf = new AMF0(this)
+
+		return amf.readData()
 	}
 
 	readShort() {
@@ -282,6 +294,12 @@ class ByteArray {
 		this.incrementPosition("write", 3)
 	}
 
+	writeObject(val) {
+		const amf = new AMF0(this)
+
+		amf.writeData(val)
+	}
+
 	writeShort(val) {
 		this.validatePosition(2)
 
@@ -312,10 +330,10 @@ class ByteArray {
 		this.writePos++;
 	}
 
-	writeUTF(val, fromUTFBytes) {
+	writeUTF(val) {
 		if (val.length > 65535) throw new RangeError("writeUTF only accepts strings with a length that is less than 65535")
 
-		if (!fromUTFBytes) this.writeShort(val.length)
+		this.writeShort(val.length)
 
 		const UTF8 = this.toUTF8(val)
 
@@ -325,7 +343,11 @@ class ByteArray {
 	}
 
 	writeUTFBytes(val) {
-		this.writeUTF(val, true)
+		const UTF8 = this.toUTF8(val)
+
+		UTF8.forEach(byte => {
+			this.writeByte(byte)
+		})
 	}
 
 	writeArrayOfBytes(bytes) {

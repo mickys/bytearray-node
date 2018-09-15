@@ -2,6 +2,26 @@
 
 const ByteArray = require("../src/ByteArray")
 
+const quickTest = () => {
+	const ba = new ByteArray()
+
+	ba.writeInt(1)
+	ba.writeShort(2)
+	ba.writeByte(3)
+
+	if (ba.readInt() === 1 && ba.readShort() === 2 && ba.readByte() === 3) console.log(`Gucci`)
+}
+
+const convertToBuffer = () => {
+	const ba = new ByteArray()
+
+	ba.writeUTFBytes("Hello world")
+
+	const buf = ba.buffer
+
+	console.log(buf.toString()) // Hello world
+}
+
 const convertArrayBufferToByteArray = () => {
 	const arb = new ArrayBuffer(8)
 	const buf = new DataView(arb)
@@ -41,4 +61,47 @@ const exampleWriteRead = () => {
 	ba.writeByte(55)
 
 	console.log(ba.readByte()) // 55
+}
+
+const exampleWriteReadObject = () => {
+	const ba = new ByteArray()
+
+	ba.writeObject({
+		fmsVer: "FMS/3,5,5,2004",
+		capabilities: 31,
+		mode: 1,
+		level: "status",
+		code: "NetConnection.Connect.Success",
+		description: "Connection succeeded.",
+		data: {
+			version: "3,5,5,2004",
+			values: [1, 2, 3, true, false, "maybe"]
+		},
+		connection: {
+			clients: {
+				"1": [1, 2, 3],
+				"2": ["a", "b", "c"],
+				"admin": ["x", "y", "z", new Date()]
+			}
+		},
+		clientId: 1584259571
+	})
+
+	const deserializedObj = ba.readObject()
+
+	console.log(deserializedObj.connection.clients.admin) // [ 'x', 'y', 'z', 'Sat Sep 15 2018 20:09:22 GMT+0200 (GMT+02:00)' ]
+}
+
+const exampleFunctionObject = () => {
+	const ba = new ByteArray()
+
+	const getMessage = (amfVersion) => {
+		return `Hello from AMF ${amfVersion}`
+	}
+
+	ba.writeObject({
+		"message": getMessage(0)
+	})
+
+	console.log(ba.readObject()) // Hello from AMF 0
 }
