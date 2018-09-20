@@ -103,5 +103,5 @@ const exampleFunctionObject = () => {
 		"message": getMessage(0)
 	})
 
-	console.log(ba.readObject()) // Hello from AMF 0
+	console.log(ba.readObject()) // Hello from AMF0
 }

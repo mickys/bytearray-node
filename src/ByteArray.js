@@ -16,6 +16,9 @@ class ByteArray {
 			} else if (bufType === "ByteArray" && bufArgu.buf.byteLength !== 0) {
 				this.arb = bufArgu.buf.buffer
 				this.buf = bufArgu.buf
+			} else if (bufType === "Buffer") {
+				this.arb = this.toArrayBuffer(bufArgu)
+				this.buf = new DataView(this.arb)
 			}
 		} else {
 			this.arb = new ArrayBuffer(byteLength)
@@ -57,6 +60,15 @@ class ByteArray {
 		if (whatPos > this.length) throw new RangeError(`The position "${whatPos}" can't be greater than the byteLength`)
 		if (whatPos <= 0) throw new RangeError(`The position "${whatPos}" can't be less than 0`)
 		if (whatPos > this.bytesAvailable) throw new RangeError(`The position "${whatPos}" can't be greater than the amount of bytes available`)
+	}
+
+	toArrayBuffer(buf) {
+		const arb = new ArrayBuffer(buf.length)
+		const ui8 = new Uint8Array(arb)
+
+		for (let i = 0; i < buf.length; i++) ui8[i] = buf[i]
+
+		return arb
 	}
 
 	fromUTF8(bytes) {
