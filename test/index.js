@@ -105,3 +105,57 @@ const exampleFunctionObject = () => {
 
 	console.log(ba.readObject()) // Hello from AMF0
 }
+
+const adobeExample1 = () => {
+	const groceries = ["milk", 4.50, "soup", 1.79, "eggs", 3.19, "bread", 2.35]
+	const ba = new ByteArray()
+
+	for (let i = 0; i < groceries.length; i++) {
+		ba.writeUTFBytes(groceries[i++])
+		ba.writeFloat(groceries[i])
+	}
+}
+
+const adobeExample2 = () => {
+	const ba = new ByteArray()
+
+	console.log(ba.writePos) // 0
+
+	ba.writeUTFBytes("Hello World!")
+
+	console.log(ba.writePos) // 12
+}
+
+const adobeExample3 = () => {
+	const ba = new ByteArray()
+
+	console.log(ba.writePos) // 0
+
+	ba.writeUTFBytes("Hello World!")
+
+	console.log(ba.writePos) // 12
+
+	ba.writePos = 0
+
+	console.log(`The first 6 bytes are: ${ba.readUTFBytes(6)}`) // Hello
+	console.log(`And the next 6 bytes are: ${ba.readUTFBytes(6)}`) // World!
+}
+
+const adobeExample4 = () => {
+	const ba = new ByteArray()
+	const text = "Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Vivamus etc."
+
+	ba.writeUTFBytes(text)
+
+	console.log(ba.writePos) // 70
+
+	ba.writePos = 0
+
+	while (ba.bytesAvailable > 0 && ba.readUTFBytes(1) !== "a") {
+
+	}
+
+	if (ba.readPos < ba.bytesAvailable) {
+		console.log(`Found the latter a; position is: ${ba.readPos}`) // 23
+	}
+}
