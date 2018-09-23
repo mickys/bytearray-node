@@ -1,10 +1,8 @@
 "use strict"
 
-const ByteArray = require("./ByteArray")
-
 class AMF0 {
-	constructor() {
-		this.ba = new ByteArray()
+	constructor(ba) {
+		this.ba = ba
 		this.references = new Map()
 	}
 
@@ -111,9 +109,9 @@ class AMF0 {
 		} else if (marker === 7) {
 			return this.references.get(this.ba.readUnsignedShort())
 		} else if (marker === 8) {
-			const val = [],
-				len = this.ba.readUnsignedInt(),
-				elementName = this.readString()
+			const val = []
+			const len = this.ba.readUnsignedInt()
+			const elementName = this.readString()
 
 			while (elementName.length > 0 && len !== 0) {
 				val[elementName] = this.readData()

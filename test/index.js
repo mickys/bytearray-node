@@ -9,40 +9,9 @@ const quickTest = () => {
 	ba.writeShort(2)
 	ba.writeByte(3)
 
+	ba.position = 0
+
 	if (ba.readInt() === 1 && ba.readShort() === 2 && ba.readByte() === 3) console.log(`Gucci`)
-}
-
-const convertToBuffer = () => {
-	const ba = new ByteArray()
-
-	ba.writeUTFBytes("Hello world")
-
-	const buf = ba.buffer
-
-	console.log(buf.toString()) // Hello world
-}
-
-const convertArrayBufferToByteArray = () => {
-	const arb = new ArrayBuffer(8)
-	const buf = new DataView(arb)
-
-	buf.setFloat64(0, 123.456, false)
-
-	const ba = new ByteArray(arb)
-
-	console.log(ba.readDouble()) // 123.456
-}
-
-const convertDataViewToByteArray = () => {
-	const buf = new DataView(new ArrayBuffer(3))
-
-	buf.setInt8(0, 1)
-	buf.setInt8(1, 2)
-	buf.setInt8(2, 3)
-
-	const ba = new ByteArray(buf)
-
-	console.log(ba.readArrayOfBytes(0, 3)) // [1, 2, 3]
 }
 
 const multipleByteArrays = () => {
@@ -59,6 +28,8 @@ const exampleWriteRead = () => {
 	const ba = new ByteArray()
 
 	ba.writeByte(55)
+
+	ba.position = 0
 
 	console.log(ba.readByte()) // 55
 }
@@ -87,6 +58,8 @@ const exampleWriteReadObject = () => {
 		clientId: 1584259571
 	})
 
+	ba.position = 0
+
 	const deserializedObj = ba.readObject()
 
 	console.log(deserializedObj.connection.clients.admin) // [ 'x', 'y', 'z', 'Sat Sep 15 2018 20:09:22 GMT+0200 (GMT+02:00)' ]
@@ -96,12 +69,14 @@ const exampleFunctionObject = () => {
 	const ba = new ByteArray()
 
 	const getMessage = (amfVersion) => {
-		return `Hello from AMF ${amfVersion}`
+		return `Hello from AMF${amfVersion}`
 	}
 
 	ba.writeObject({
 		"message": getMessage(0)
 	})
+
+	ba.position = 0
 
 	console.log(ba.readObject()) // Hello from AMF0
 }
@@ -119,23 +94,23 @@ const adobeExample1 = () => {
 const adobeExample2 = () => {
 	const ba = new ByteArray()
 
-	console.log(ba.writePos) // 0
+	console.log(ba.position) // 0
 
 	ba.writeUTFBytes("Hello World!")
 
-	console.log(ba.writePos) // 12
+	console.log(ba.position) // 12
 }
 
 const adobeExample3 = () => {
 	const ba = new ByteArray()
 
-	console.log(ba.writePos) // 0
+	console.log(ba.position) // 0
 
 	ba.writeUTFBytes("Hello World!")
 
-	console.log(ba.writePos) // 12
+	console.log(ba.position) // 12
 
-	ba.writePos = 0
+	ba.position = 0
 
 	console.log(`The first 6 bytes are: ${ba.readUTFBytes(6)}`) // Hello
 	console.log(`And the next 6 bytes are: ${ba.readUTFBytes(6)}`) // World!
@@ -143,19 +118,49 @@ const adobeExample3 = () => {
 
 const adobeExample4 = () => {
 	const ba = new ByteArray()
-	const text = "Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Vivamus etc."
 
-	ba.writeUTFBytes(text)
+	ba.writeUTFBytes("Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Vivamus etc.")
 
-	console.log(ba.writePos) // 70
+	console.log(ba.position) // 70
 
-	ba.writePos = 0
+	ba.position = 0
 
 	while (ba.bytesAvailable > 0 && ba.readUTFBytes(1) !== "a") {
 
 	}
 
-	if (ba.readPos < ba.bytesAvailable) {
-		console.log(`Found the latter a; position is: ${ba.readPos}`) // 23
+	if (ba.position < ba.bytesAvailable) {
+		console.log(`Found the letter a; position is: ${ba.position}`) // 23
+	}
+}
+
+const adobeExample5 = () => {
+	const ba = new ByteArray()
+
+	ba.writeUnsignedInt(10) // position = 4
+	ba.writeBoolean(true) // position = 5
+	ba.writeUnsignedInt(26) // position = 9
+
+	ba.position = 0
+
+	console.log(ba.readUnsignedInt()) // 10, position = 4
+	console.log(ba.readBoolean()) // true, position = 5
+	console.log(ba.readUnsignedInt()) // 26, position = 9
+
+	ba.position = 4
+
+	console.log(ba.readBoolean()) // true, position = 5
+}
+
+const adobeExample6 = () => {
+	const ba = new ByteArray()
+
+	ba.writeUnsignedInt(10) // position = 4
+	ba.writeUnsignedInt(26) // position = 8
+
+	ba.position = 0
+
+	while (ba.bytesAvailable !== 2040) { // we wrote 8 bytes, 2048 - 8 = 2040
+		console.log(ba.readByte())
 	}
 }
