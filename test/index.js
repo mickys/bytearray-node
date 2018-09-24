@@ -100,6 +100,8 @@ const exampleWriteReadObjectAMF3 = () => {
 
 const exampleFunctionObject = () => {
 	const ba = new ByteArray()
+	
+	ba.objectEncoding = 0
 
 	const getMessage = (amfVersion) => {
 		return `Hello from AMF${amfVersion}`
