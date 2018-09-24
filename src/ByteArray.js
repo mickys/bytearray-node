@@ -14,14 +14,12 @@ class ByteArray {
 		} else {
 			this.buffer = Buffer.alloc(typeof(buffer) === "number" ? parseInt(buffer) : 2048)
 		}
+
+		this.length = this.buffer.length
 	}
 
 	get bytesAvailable() {
 		return this.length - this.position
-	}
-
-	get length() {
-		return this.buffer.length
 	}
 
 	clear() {

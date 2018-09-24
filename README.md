@@ -18,6 +18,20 @@ ba.readShort() // 55
 ba.readByte() // 45
 ```
 
+AMF0 is supported in this library, demo:
+
+```javascript
+const ByteArray = require("bytearray-node")
+
+const ba = new ByteArray()
+
+ba.writeObject({id: 1})
+
+ba.position = 0
+
+ba.readObject() // { id: 1 }
+```
+
 # Installation
 
 **npm install bytearray-node**

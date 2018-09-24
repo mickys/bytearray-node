@@ -164,3 +164,60 @@ const adobeExample6 = () => {
 		console.log(ba.readByte())
 	}
 }
+
+const adobeExample7 = () => { // Advanced example on how to write/read zip files
+	let fileName = ""
+	let flNameLength = 0
+	let xfldLength = 0
+	let offset = 0
+	let compSize = 0
+	let uncompSize = 0
+	let compMethod = 0
+	let signature = 0
+
+	const fs = require("fs")
+	const data = new ByteArray(fs.readFileSync("./test.zip"))
+	const ba = new ByteArray()
+
+	data.endian = false
+	ba.endian = false
+
+	while (ba.bytesAvailable >= 2018) {
+		data.readBytes(ba, 0, 30)
+
+		ba.position = 0
+		signature = ba.readInt()
+
+		if (signature !== 0x04034b50) throw new Error("Invalid signature")
+
+		ba.position = 8
+		compMethod = ba.readByte()
+
+		offset = 0
+		ba.position = 26
+		flNameLength = ba.readShort()
+		offset += flNameLength
+		ba.position = 28
+		xfldLength = ba.readShort()
+		offset += xfldLength
+
+		data.readBytes(ba, 30, offset)
+
+		ba.position = 30
+		fileName = ba.readUTFBytes(flNameLength)
+		ba.position = 18
+		compSize = ba.readUnsignedInt()
+		console.log(`Compressed size is: ${compSize}`)
+		ba.position = 22
+		uncompSize = ba.readUnsignedInt()
+		console.log(`Uncompressed size is: ${uncompSize}`)
+
+		data.readBytes(ba, 0, compSize)
+
+		fs.writeFile("./readfile.zip", data.buffer, (err) => {
+			if (err) throw err
+		})
+	}
+}
+
+adobeExample7()
