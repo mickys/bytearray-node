@@ -34,7 +34,40 @@ const exampleWriteRead = () => {
 	console.log(ba.readByte()) // 55
 }
 
-const exampleWriteReadObject = () => {
+const exampleWriteReadObjectAMF0 = () => {
+	const ba = new ByteArray()
+
+	ba.objectEncoding = 0
+
+	ba.writeObject({
+		fmsVer: "FMS/3,5,5,2004",
+		capabilities: 31,
+		mode: 1,
+		level: "status",
+		code: "NetConnection.Connect.Success",
+		description: "Connection succeeded.",
+		data: {
+			version: "3,5,5,2004",
+			values: [1, 2, 3, true, false, "maybe"]
+		},
+		connection: {
+			clients: {
+				"1": [1, 2, 3],
+				"2": ["a", "b", "c"],
+				"admin": ["x", "y", "z", new Date()]
+			}
+		},
+		clientId: 1584259571
+	})
+
+	ba.position = 0
+
+	const deserializedObj = ba.readObject()
+
+	console.log(deserializedObj.connection.clients.admin) // [ 'x', 'y', 'z', 'Sat Sep 15 2018 20:09:22 GMT+0200 (GMT+02:00)' ]
+}
+
+const exampleWriteReadObjectAMF3 = () => {
 	const ba = new ByteArray()
 
 	ba.writeObject({
@@ -79,6 +112,22 @@ const exampleFunctionObject = () => {
 	ba.position = 0
 
 	console.log(ba.readObject()) // Hello from AMF0
+}
+
+const ByteArrayExample = () => {
+	const ba = new ByteArray()
+
+	ba.writeBoolean(false)
+	ba.writeDouble(Math.PI)
+
+	ba.position = 1
+
+	console.log(ba.readArrayOfBytes(1, 9)) // [ 64, 9, 33, 251, 84, 68, 45, 24 ]
+
+	ba.position = 0
+
+	console.log(ba.readBoolean() === false) // true
+	console.log(ba.readDouble()) // 3.141592653589793
 }
 
 const adobeExample1 = () => {
@@ -220,4 +269,28 @@ const adobeExample7 = () => { // Advanced example on how to write/read zip files
 	}
 }
 
-adobeExample7()
+const classObjectExample = () => {
+	const Person = class Person {
+		constructor() {
+			this.firstName = ""
+			this.lastName = ""
+			this.age = 0
+		}
+	}
+
+	const objectPerson = new Person()
+
+	objectPerson.firstName = "Zaseth"
+	objectPerson.lastName = "Secret"
+	objectPerson.age = 69
+
+	const ba = new ByteArray()
+
+	ba.writeObject(objectPerson)
+
+	ba.position = 0
+
+	const obj = ba.readObject()
+
+	console.log(`${obj.firstName} ${obj.lastName} is ${obj.age} years old`)
+}

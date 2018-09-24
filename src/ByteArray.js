@@ -1,11 +1,13 @@
 "use strict"
 
+const AMF3 = require("./AMF3")
 const AMF0 = require("./AMF0")
 
 class ByteArray {
 	constructor(buffer) {
 		this.position = 0
 		this.endian = true
+		this.objectEncoding = 3
 
 		if (buffer instanceof ByteArray) {
 			this.buffer = buffer.buffer
@@ -14,12 +16,14 @@ class ByteArray {
 		} else {
 			this.buffer = Buffer.alloc(typeof(buffer) === "number" ? parseInt(buffer) : 2048)
 		}
-
-		this.length = this.buffer.length
 	}
 
 	get bytesAvailable() {
 		return this.length - this.position
+	}
+
+	get length() {
+		return this.buffer.length
 	}
 
 	clear() {
@@ -91,7 +95,7 @@ class ByteArray {
 	}
 
 	readObject() {
-		return new AMF0(this).readData()
+		return this.objectEncoding === 3 ? new AMF3(this).readData() : new AMF0(this).readData()
 	}
 
 	readShort() {
@@ -125,7 +129,7 @@ class ByteArray {
 		const buf = []
 
 		for (let i = start, l = end; i < l; i++) {
-			buf.push(this.readByte())
+			buf.push(this.readUnsignedByte())
 		}
 
 		return buf
@@ -180,7 +184,7 @@ class ByteArray {
 	}
 
 	writeObject(value) {
-		new AMF0(this).writeData(value)
+		this.objectEncoding === 3 ? new AMF3(this).writeData(value) : new AMF0(this).writeData(value)
 	}
 
 	writeShort(value) {
@@ -213,7 +217,7 @@ class ByteArray {
 
 	writeArrayOfBytes(bytes) {
 		for (let i = 0, l = bytes.length; i < l; i++) {
-			this.writeByte(bytes[i])
+			this.writeUnsignedByte(bytes[i])
 		}
 	}
 }
