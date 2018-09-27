@@ -56,6 +56,26 @@ class ByteArray {
 		return a
 	}
 
+	atomicCompareAndSwapIntAt(byteIndex, expectedValue, newValue) {
+		let byte = this.buffer[byteIndex]
+
+		if (byte === expectedValue) this.buffer[byteIndex] = newValue
+
+		return byte;
+	}
+
+	atomicCompareAndSwapLength(expectedLength, newLength) {
+		const prevLength = this.length
+
+		if (prevLength !== expectedLength) return prevLength
+
+		if (prevLength < newLength) this.buffer = Buffer.concat([this.buffer, Buffer.alloc(newLength - prevLength)], newLength)
+
+		if (prevLength > newLength) this.buffer = this.buffer.slice(newLength - 1, prevLength - 1)
+
+		return prevLength
+	}
+
 	readBoolean() {
 		return Boolean(this.readByte())
 	}

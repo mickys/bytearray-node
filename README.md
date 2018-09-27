@@ -23,3 +23,7 @@ ba.readByte() // 45
 # Installation
 
 **npm install bytearray-node**
+
+# Credits
+
+Both AMF libraries are originally written by **perceptron8**, I just slighty modified it.
