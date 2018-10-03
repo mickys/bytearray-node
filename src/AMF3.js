@@ -260,6 +260,15 @@ class AMF3 {
 					}
 				}
 
+				const removeSpecs = true
+
+				if (removeSpecs) {
+					delete val["@name"]
+					delete val["@externalizable"]
+					delete val["@dynamic"]
+					delete val["@properties"]
+				}
+
 				return val
 			} else {
 				if (this.objects.has(index >> 1)) return this.objects.get(index >> 1)

@@ -85,11 +85,11 @@ class ByteArray {
 	}
 
 	readBytes(bytes, offset = 0, length = 0) {
-		if (offset < 0 || length < 0 || this.bytesAvailable < 0) return
+		if (offset < 0 || length < 0) return
 
 		length = length || bytes.length
 
-		for (let i = offset, l = length; i < l; i++) {
+		for (let i = offset, l = length; i < l && this.bytesAvailable > 0; i++) {
 			bytes.writeByte(this.readByte())
 		}
 	}
@@ -172,13 +172,13 @@ class ByteArray {
 	}
 
 	writeBytes(bytes, offset = 0, length = 0) {
-		if (offset < 0 || length < 0 || this.bytesAvailable < 0) return
+		if (offset < 0 || length < 0) return
 
 		length = length || bytes.length
 
 		bytes.reset()
 
-		for (let i = offset, l = length; i < l; i++) {
+		for (let i = offset, l = length; i < l && this.bytesAvailable > 0; i++) {
 			this.writeByte(bytes.readByte())
 		}
 	}
@@ -225,6 +225,8 @@ class ByteArray {
 
 	writeUTF(value) {
 		const length = Buffer.byteLength(value)
+
+		if (length > 65535) return
 
 		this.writeShort(length)
 
