@@ -9,6 +9,9 @@ class ByteArray {
 		this.endian = true
 		this.objectEncoding = 3
 
+		this.AMFHeader = new(require("./AMFHeader"))
+		this.AMFMessage = new(require("./AMFMessage"))
+
 		if (buffer instanceof ByteArray) {
 			this.buffer = buffer.buffer
 		} else if (Buffer.isBuffer(buffer)) {
@@ -241,6 +244,77 @@ class ByteArray {
 		for (let i = 0, l = bytes.length; i < l; i++) {
 			this.writeUnsignedByte(bytes[i])
 		}
+	}
+
+	writeAMFPacket(value) {
+		if (!value.headers instanceof Array) throw new TypeError("Headers must be inside of an array")
+		if (!value.messages instanceof Array) throw new TypeError("Messages must be inside of an array")
+
+		this.writeShort(value.version)
+		this.writeShort(value.headers.length)
+
+		value.headers.forEach(header => {
+			this.writeUTF(header.name)
+			this.writeBoolean(header.mustUnderstand)
+			this.writeInt(-1)
+			this.objectEncoding = 0
+			this.writeObject(header.value)
+		})
+
+		this.writeShort(value.messages.length)
+
+		value.messages.forEach(message => {
+			this.writeUTF(message.targetUri)
+			this.writeUTF(message.responseUri)
+			this.writeInt(-1)
+			this.writeByte(17)
+			this.objectEncoding = 3
+			this.writeObject(message.value)
+		})
+	}
+
+	readAMFPacket() {
+		this.position = 0
+
+		const value = {}
+
+		value.version = this.readShort()
+
+		const headerCount = this.readShort()
+
+		value.headers = []
+
+		for (let i = 0; i < headerCount; i++) {
+			const header = value.headers
+
+			header.name = this.readUTF()
+			header.mustUnderstand = this.readBoolean()
+
+			if (this.readInt() === -1) {
+				this.objectEncoding = 0
+
+				header.value = this.readObject()
+			}
+		}
+
+		const messageCount = this.readShort()
+
+		value.messages = []
+
+		for (let i = 0; i < messageCount; i++) {
+			const message = value.messages
+
+			message.targetUri = this.readUTF()
+			message.responseUri = this.readUTF()
+
+			if (this.readInt() === -1 && this.readByte() === 17) {
+				this.objectEncoding = 3
+
+				message.value = this.readObject()
+			}
+		}
+
+		return value
 	}
 }
 

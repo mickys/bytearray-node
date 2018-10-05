@@ -1,6 +1,7 @@
 "use strict"
 
 const tape = require("tape")
+
 const ByteArray = require("../src/ByteArray")
 
 tape("A quick test", (v) => {
@@ -163,6 +164,35 @@ tape("You can also serialize a class in AMF format", (v) => {
 	v.equal(obj.firstName, "Zaseth")
 	v.equal(obj.lastName, "Secret")
 	v.equal(obj.age, 69)
+
+	v.end()
+})
+
+tape("Write and read an AMF packet", (v) => {
+	const ba = new ByteArray()
+
+	ba.AMFHeader.name = "myHeaderName"
+	ba.AMFHeader.value = "myHeaderValue"
+
+	ba.AMFMessage.targetUri = "myTargetUri"
+	ba.AMFMessage.responseUri = "myResponseUri"
+	ba.AMFMessage.value = "myMessageValue"
+
+	ba.writeAMFPacket({
+		version: 0,
+		headers: [ba.AMFHeader],
+		messages: [ba.AMFMessage]
+	})
+
+	const packet = ba.readAMFPacket()
+
+	v.equal(packet.version, 0)
+	v.equal(packet.headers.name, "myHeaderName")
+	v.equal(packet.headers.mustUnderstand, false)
+	v.equal(packet.headers.value, "myHeaderValue")
+	v.equal(packet.messages.targetUri, "myTargetUri")
+	v.equal(packet.messages.responseUri, "myResponseUri")
+	v.equal(packet.messages.value, "myMessageValue")
 
 	v.end()
 })
