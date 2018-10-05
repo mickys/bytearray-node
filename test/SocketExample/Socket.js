@@ -2,62 +2,78 @@
 
 const ByteArray = require("../../src/ByteArray")
 
-const writePacket = (data) => {
+const sendMulti = (userId, subject, recipients, content) => {
 	const ba = new ByteArray()
 
-	const recipients = [data.recipients]
-
 	ba.writeShort(26880)
-	ba.writeUTF(String(data.senderId))
-	ba.writeUTF(data.subject)
-	ba.writeShort(recipients.length)
 
-	for (let i = 0; i < recipients.length; i++) {
-		ba.writeUTF(recipients[i])
-	}
+	const lengthPos = ba.position
 
-	ba.writeObject(data.content)
-	ba.writeInt(ba.position)
+	const key = Math.floor(Math.random() * (999999999 - 100000000 + 1)) + 100000000
+
+	ba.writeInt(0)
+	ba.writeUTF(String(userId ^ key))
+	ba.writeUTF(String(key))
+	ba.writeUTF(subject)
+	ba.writeInt(0)
+	ba.writeShort(1)
+	ba.writeUTF(recipients)
+	ba.writeObject(content)
+
+	const messageLength = ba.position - lengthPos - 4
+
+	ba.writeInt(messageLength)
 
 	return ba
 }
 
-const readPacket = (ba) => {
-	if (ba.position !== 0) ba.position = 0
-	if (ba.readShort() !== 26880) return undefined
+const readMulti = (ba) => {
+	ba.position = 0
 
-	const senderId = ba.readUTF()
-	const subject = ba.readUTF()
-	const recipientLength = ba.readShort()
-	const recipients = {}
+	const header = ba.readShort()
 
-	for (let i = 0; i < recipientLength; i++) {
-		recipients[i] = ba.readUTF()
+	if (header !== 26880) {
+		const errHeader = {}
+
+		errHeader.senderId = "Error"
+		errHeader.subject = "Error"
+		errHeader.content = "Invalid Header"
+
+		return errHeader
 	}
 
-	const content = ba.readObject()
-	const length = ba.readInt() + 4
+	const size = ba.readInt()
 
-	return {
-		content,
-		senderId,
-		recipients,
-		subject,
-		length
+	if (size !== 0) {
+		const errSize = {}
+
+		errSize.senderId = "Error"
+		errHeader.subject = "Error"
+		errHeader.content = "Invalid Size"
+
+		return errSize
 	}
-}
 
-const writePingPacket = () => {
-	return writePacket({
-		senderId: 100,
-		subject: "PING",
-		recipients: "System.Ping.Client",
-		content: {
-			online: true
-		}
-	})
-}
+	try {
+		const message = {}
 
-const readPingPacket = (ba) => {
-	return readPacket(ba).content.online ? "The client is online" : "The client is not online"
+		message.senderId = ba.readUTF() ^ ba.readUTF()
+		message.subject = ba.readUTF()
+		message.timestamp = ba.readInt()
+		message.recipients = {}
+		message.recipients[ba.readShort() === 1 ? "0" : "0"] = ba.readUTF()
+		message.content = ba.readObject()
+		message.messageLength = ba.readInt()
+		message.length = ba.position
+
+		return message
+	} catch (e) {
+		const errSocket = {}
+
+		errSocket.senderId = "Error"
+		errSocket.subject = "Error"
+		errSocket.content = "Error in Socket Data"
+
+		return errSocket
+	}
 }
