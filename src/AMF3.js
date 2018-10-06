@@ -164,6 +164,8 @@ class AMF3 {
 	readData() {
 		const marker = this.ba.readByte()
 
+		console.log(`AMF marker read: ${marker}`)
+
 		if (marker === 1) {
 			return null
 		} else if (marker === 0) {
@@ -196,20 +198,34 @@ class AMF3 {
 			const index = this.readUnsignedInt29()
 
 			if (index & 1) {
-				const val = []
-				let denseValid = false
+				let key = this.readString()
+
+				if (key === "") {
+					const val = []
+
+					this.objects.set(this.objects.size, val)
+
+					for (let i = 0; i < index >> 1; i++) {
+						val.push(this.readData())
+					}
+
+					return val
+				}
+
+				let val = {}
 
 				this.objects.set(this.objects.size, val)
 
-				const key = this.readString()
-
-				if (key === "") {
-					denseValid = true
-
-					for (let i = 0; i < index >> 1; i++) val.push(this.readData())
+				while (key !== "") {
+					val[key] = this.readData()
+					key = this.readString()
 				}
 
-				if (denseValid) return val
+				for (let i = 0; i < index >> 1; i++) {
+					val[i] = this.readData()
+				}
+
+				return val
 			} else {
 				if (this.objects.has(index >> 1)) return this.objects.get(index >> 1)
 			}

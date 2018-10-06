@@ -1,7 +1,7 @@
 "use strict"
 
 class AMFHeader {
-	constructor(name, value, mustUnderstand = false) {
+	constructor(name = "", value = "", mustUnderstand = false) {
 		this.name = name
 		this.value = value
 		this.mustUnderstand = mustUnderstand

@@ -21,6 +21,10 @@ class ByteArray {
 		}
 	}
 
+	toBuffer() {
+		return this.buffer.slice(0, this.position)
+	}
+
 	get bytesAvailable() {
 		return this.length - this.position
 	}
@@ -87,13 +91,23 @@ class ByteArray {
 		return this.buffer.readInt8(this.updatePosition(1))
 	}
 
-	readBytes(bytes, offset = 0, length = 0) {
+	readFixedBytes(buffer, offset = 0, length = 0) {
 		if (offset < 0 || length < 0) return
 
-		length = length || bytes.length
+		length = length || buffer.length
+
+		for (let i = 0; i < length; i++) {
+			buffer.buffer[i + offset] = this.readByte()
+		}
+	}
+
+	readBytes(buffer, offset = 0, length = 0) {
+		if (offset < 0 || length < 0) throw new Error("bad")
+
+		length = length || buffer.length
 
 		for (let i = offset, l = length; i < l && this.bytesAvailable > 0; i++) {
-			bytes.writeByte(this.readByte())
+			buffer.writeByte(this.readByte())
 		}
 	}
 
