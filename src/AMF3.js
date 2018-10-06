@@ -164,8 +164,6 @@ class AMF3 {
 	readData() {
 		const marker = this.ba.readByte()
 
-		console.log(`AMF marker read: ${marker}`)
-
 		if (marker === 1) {
 			return null
 		} else if (marker === 0) {

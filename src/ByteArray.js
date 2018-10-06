@@ -188,15 +188,15 @@ class ByteArray {
 		this.buffer.writeInt8(value, this.updatePosition(1, true))
 	}
 
-	writeBytes(bytes, offset = 0, length = 0) {
+	writeBytes(buffer, offset = 0, length = 0) {
 		if (offset < 0 || length < 0) return
 
-		length = length || bytes.length
+		length = length || buffer.length
 
-		bytes.reset()
+		buffer.reset()
 
 		for (let i = offset, l = length; i < l && this.bytesAvailable > 0; i++) {
-			this.writeByte(bytes.readByte())
+			this.writeByte(buffer.readByte())
 		}
 	}
 
