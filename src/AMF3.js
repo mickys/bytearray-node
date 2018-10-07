@@ -14,6 +14,20 @@ class AMF3 {
 		return -Math.pow(2, 28) <= val && val <= +Math.pow(2, 28) - 1
 	}
 
+	isDenseArray(array) {
+		if (!array) return true
+
+		let test = 0
+
+		for (var x in array) {
+			if (x != test) return false
+
+			test++;
+		}
+
+		return true
+	}
+
 	writeUnsignedInt29(val) {
 		if (val < 0x80) {
 			this.ba.writeUnsignedByte(val)
@@ -73,12 +87,26 @@ class AMF3 {
 			this.ba.writeByte(9)
 
 			if (this.objects.has(val)) return this.writeUnsignedInt29(this.objects.get(val) << 1 | 0)
-
 			this.objects.set(val, this.objects.size)
-			this.writeUnsignedInt29(val.length << 1 | 1)
-			this.writeString("")
 
-			for (const element of val) this.writeData(element)
+			let element = null
+			let isDense = this.isDenseArray(val)
+
+			if (isDense) {
+				this.writeUnsignedInt29((val.length << 1) | 1)
+				this.writeString("")
+
+				for (const i in val) this.writeData(val[i])
+			} else {
+				this.writeUnsignedInt29(1)
+
+				for (const key in val) {
+					this.writeString(key)
+					this.writeData(val[key])
+				}
+
+				this.writeString("")
+			}
 		} else if (val instanceof Object) {
 			this.ba.writeByte(10)
 
