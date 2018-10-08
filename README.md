@@ -26,4 +26,4 @@ ba.readByte() // 45
 
 # Credits
 
-Both AMF libraries are originally written by **perceptron8**, I just slighty modified it.
+Both AMF libraries are originally written by [perceptron8](https://github.com/perceptron8/), I just slighty modified it.

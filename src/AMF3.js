@@ -15,12 +15,16 @@ class AMF3 {
 	}
 
 	isDenseArray(array) {
-		if (!array) return true
+		if (!array) {
+			return true
+		}
 
 		let test = 0
 
-		for (var x in array) {
-			if (x != test) return false
+		for (const x in array) {
+			if (x != test) {
+				return false
+			}
 
 			test++;
 		}
@@ -49,8 +53,13 @@ class AMF3 {
 	}
 
 	writeString(val) {
-		if (val.length === 0 || val === "") return this.writeUnsignedInt29(0 << 1 | 1)
-		if (this.strings.has(val)) return this.writeUnsignedInt29(this.strings.get(val) << 1 | 0)
+		if (val.length === 0 || val === "") {
+			return this.writeUnsignedInt29(0 << 1 | 1)
+		}
+
+		if (this.strings.has(val)) {
+			return this.writeUnsignedInt29(this.strings.get(val) << 1 | 0)
+		}
 
 		this.strings.set(val, this.strings.size)
 		this.writeUnsignedInt29(val.length << 1 | 1)
@@ -75,7 +84,9 @@ class AMF3 {
 		} else if (val instanceof Date) {
 			this.ba.writeByte(8)
 
-			if (this.objects.has(val)) return this.writeUnsignedInt29(this.objects.get(val) << 1 | 0)
+			if (this.objects.has(val)) {
+				return this.writeUnsignedInt29(this.objects.get(val) << 1 | 0)
+			}
 
 			this.objects.set(val, this.objects.size)
 			this.writeUnsignedInt29(0 << 1 | 1)
@@ -86,7 +97,10 @@ class AMF3 {
 		} else if (val instanceof Array) {
 			this.ba.writeByte(9)
 
-			if (this.objects.has(val)) return this.writeUnsignedInt29(this.objects.get(val) << 1 | 0)
+			if (this.objects.has(val)) {
+				return this.writeUnsignedInt29(this.objects.get(val) << 1 | 0)
+			}
+
 			this.objects.set(val, this.objects.size)
 
 			let element = null
@@ -96,7 +110,9 @@ class AMF3 {
 				this.writeUnsignedInt29((val.length << 1) | 1)
 				this.writeString("")
 
-				for (const i in val) this.writeData(val[i])
+				for (const i in val) {
+					this.writeData(val[i])
+				}
 			} else {
 				this.writeUnsignedInt29(1)
 
@@ -107,10 +123,22 @@ class AMF3 {
 
 				this.writeString("")
 			}
+		} else if (typeof val === "ByteArray") {
+			this.ba.writeByte(12)
+
+			if (this.objects.has(val)) {
+				return this.writeUnsignedInt29(this.objects.get(val) << 1 | 1)
+			}
+
+			this.objects.set(val, this.objects.size)
+
+			this.ba.writeBytes(val)
 		} else if (val instanceof Object) {
 			this.ba.writeByte(10)
 
-			if (this.objects.has(val)) return this.writeUnsignedInt29(this.objects.get(val) << 1 | 0)
+			if (this.objects.has(val)) {
+				return this.writeUnsignedInt29(this.objects.get(val) << 1 | 0)
+			}
 
 			this.objects.set(val, this.objects.size)
 
@@ -124,14 +152,18 @@ class AMF3 {
 				this.writeUnsignedInt29(properties.length << 4 | dynamic << 3 | externalizable << 2 | 3)
 				this.writeString(name)
 
-				for (const property of properties) this.writeString(property)
+				for (const property of properties) {
+					this.writeString(property)
+				}
 			} else {
 				this.writeUnsignedInt29(this.traits.get(name) << 2 | 1)
 			}
 
 			if (!externalizable) {
 				for (const property of properties) {
-					if (property[0] !== "@") this.writeData(val[property])
+					if (property[0] !== "@") {
+						this.writeData(val[property])
+					}
 				}
 
 				if (dynamic) {
@@ -163,13 +195,22 @@ class AMF3 {
 
 	readUnsignedInt29() {
 		let byte = this.ba.readUnsignedByte()
-		if (byte < 128) return byte
+		if (byte < 128) {
+			return byte
+		}
+
 		let ref = (byte & 0x7F) << 7
 		byte = this.ba.readUnsignedByte()
-		if (byte < 128) return (ref | byte)
+		if (byte < 128) {
+			return (ref | byte)
+		}
+
 		ref = (ref | (byte & 0x7F)) << 7
 		byte = this.ba.readUnsignedByte()
-		if (byte < 128) return (ref | byte)
+		if (byte < 128) {
+			return (ref | byte)
+		}
+
 		ref = (ref | (byte & 0x7F)) << 8
 		byte = this.ba.readUnsignedByte()
 		return (ref | byte)
@@ -181,11 +222,15 @@ class AMF3 {
 		if (index & 1) {
 			const val = this.ba.readUTFBytes(index >> 1)
 
-			if (val.length !== 0) this.strings.set(this.strings.size, val)
+			if (val.length !== 0) {
+				this.strings.set(this.strings.size, val)
+			}
 
 			return val
 		} else {
-			if (this.strings.has(index >> 1)) return this.strings.get(index >> 1)
+			if (this.strings.has(index >> 1)) {
+				return this.strings.get(index >> 1)
+			}
 		}
 	}
 
@@ -216,9 +261,11 @@ class AMF3 {
 
 				return val.toString()
 			} else {
-				if (this.objects.has(index >> 1)) return this.objects.get(index >> 1)
+				if (this.objects.has(index >> 1)) {
+					return this.objects.get(index >> 1)
+				}
 			}
-		} else if (marker === 6) {
+		} else if (marker === 6 || marker === 7 || marker === 11) {
 			return this.readString()
 		} else if (marker === 9) {
 			const index = this.readUnsignedInt29()
@@ -253,7 +300,25 @@ class AMF3 {
 
 				return val
 			} else {
-				if (this.objects.has(index >> 1)) return this.objects.get(index >> 1)
+				if (this.objects.has(index >> 1)) {
+					return this.objects.get(index >> 1)
+				}
+			}
+		} else if (marker === 12) {
+			const index = this.readUnsignedInt29()
+
+			if (index & 1) {
+				const ba = new ByteArray()
+
+				this.objects.set(this.objects.size, ba)
+
+				ba.readBytes(this.ba, 0, index >> 1)
+
+				return ba
+			} else {
+				if (this.objects.has(index >> 1)) {
+					return this.objects.get(index >> 1)
+				}
 			}
 		} else if (marker === 10) {
 			const index = this.readUnsignedInt29()
@@ -275,21 +340,29 @@ class AMF3 {
 					traits["@dynamic"] = !!(index & 1 << 3)
 					traits["@properties"] = []
 
-					for (let i = 0; i < index >> 4; i++) traits["@properties"].push(this.readString())
+					for (let i = 0; i < index >> 4; i++) {
+						traits["@properties"].push(this.readString())
+					}
 
 					_.extend(val, traits)
 				} else {
-					if (this.traits.has(index >> 2)) _.extend(val, this.traits.get(index >> 2))
+					if (this.traits.has(index >> 2)) {
+						_.extend(val, this.traits.get(index >> 2))
+					}
 				}
 
 				if (!val["@externalizable"]) {
 					for (const property of val["@properties"]) {
-						if (property[0] !== "@") val[property] = this.readData()
+						if (property[0] !== "@") {
+							val[property] = this.readData()
+						}
 					}
 
 					if (val["@dynamic"]) {
 						for (let property = this.readString(); property !== ""; property = this.readString()) {
-							if (property[0] !== "@") val[property] = this.readData()
+							if (property[0] !== "@") {
+								val[property] = this.readData()
+							}
 						}
 					}
 				} else {
@@ -313,7 +386,9 @@ class AMF3 {
 
 				return val
 			} else {
-				if (this.objects.has(index >> 1)) return this.objects.get(index >> 1)
+				if (this.objects.has(index >> 1)) {
+					return this.objects.get(index >> 1)
+				}
 			}
 		} else {
 			throw new TypeError(`Unknown marker: ${marker}`)

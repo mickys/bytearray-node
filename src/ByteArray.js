@@ -66,19 +66,27 @@ class ByteArray {
 	atomicCompareAndSwapIntAt(byteIndex, expectedValue, newValue) {
 		let byte = this.buffer[byteIndex]
 
-		if (byte === expectedValue) this.buffer[byteIndex] = newValue
+		if (byte === expectedValue) {
+			this.buffer[byteIndex] = newValue
+		}
 
-		return byte;
+		return byte
 	}
 
 	atomicCompareAndSwapLength(expectedLength, newLength) {
 		const prevLength = this.length
 
-		if (prevLength !== expectedLength) return prevLength
+		if (prevLength !== expectedLength) {
+			return prevLength
+		}
 
-		if (prevLength < newLength) this.buffer = Buffer.concat([this.buffer, Buffer.alloc(newLength - prevLength)], newLength)
+		if (prevLength < newLength) {
+			this.buffer = Buffer.concat([this.buffer, Buffer.alloc(newLength - prevLength)], newLength)
+		}
 
-		if (prevLength > newLength) this.buffer = this.buffer.slice(newLength - 1, prevLength - 1)
+		if (prevLength > newLength) {
+			this.buffer = this.buffer.slice(newLength - 1, prevLength - 1)
+		}
 
 		return prevLength
 	}
@@ -92,7 +100,9 @@ class ByteArray {
 	}
 
 	readFixedBytes(buffer, offset = 0, length = 0) {
-		if (offset < 0 || length < 0) return
+		if (offset < 0 || length < 0) {
+			throw new Error("Offset/Length can't be less than 0")
+		}
 
 		length = length || buffer.length
 
@@ -102,7 +112,9 @@ class ByteArray {
 	}
 
 	readBytes(buffer, offset = 0, length = 0) {
-		if (offset < 0 || length < 0) throw new Error("bad")
+		if (offset < 0 || length < 0) {
+			throw new Error("Offset/Length can't be less than 0")
+		}
 
 		length = length || buffer.length
 
@@ -189,7 +201,9 @@ class ByteArray {
 	}
 
 	writeBytes(buffer, offset = 0, length = 0) {
-		if (offset < 0 || length < 0) return
+		if (offset < 0 || length < 0) {
+			throw new Error("Offset/Length can't be less than 0")
+		}
 
 		length = length || buffer.length
 
@@ -243,7 +257,9 @@ class ByteArray {
 	writeUTF(value) {
 		const length = Buffer.byteLength(value)
 
-		if (length > 65535) return
+		if (length > 65535) {
+			throw new Error("Length can't be greater than 65535")
+		}
 
 		this.writeShort(length)
 
@@ -261,8 +277,13 @@ class ByteArray {
 	}
 
 	writeAMFPacket(value) {
-		if (!value.headers instanceof Array) throw new TypeError("Headers must be inside of an array")
-		if (!value.messages instanceof Array) throw new TypeError("Messages must be inside of an array")
+		if (!value.headers instanceof Array) {
+			throw new TypeError("Headers must be inside of an array")
+		}
+
+		if (!value.messages instanceof Array) {
+			throw new TypeError("Messages must be inside of an array")
+		}
 
 		this.writeShort(value.version)
 		this.writeShort(value.headers.length)
