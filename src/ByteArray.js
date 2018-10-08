@@ -42,20 +42,7 @@ class ByteArray {
 		this.position = 0
 	}
 
-	updatePosition(pos, write) {
-		if (write) {
-			const size = this.position + pos
-
-			if (size >= this.length) {
-				const ba = new ByteArray(size || this.position)
-
-				ba.writeBytes(this)
-
-				this.position = size && this.position > size ? size : this.position
-				this.buffer = ba.buffer
-			}
-		}
-
+	updatePosition(pos) {
 		const a = this.position
 
 		this.position += pos
@@ -164,10 +151,14 @@ class ByteArray {
 	}
 
 	readUTF() {
-		const length = this.readShort()
+		/*const length = this.readShort()
 		const position = this.updatePosition(length)
+		return this.buffer.toString("utf8", position, position + length)*/
 
-		return this.buffer.toString("utf8", position, position + length)
+		const length = this.readShort()
+		const pos = this.position
+		this.position += length
+		return this.buffer.toString("utf8", pos, pos + length)
 	}
 
 	readUTFBytes(length) {
@@ -197,7 +188,7 @@ class ByteArray {
 	}
 
 	writeByte(value) {
-		this.buffer.writeInt8(value, this.updatePosition(1, true))
+		this.buffer.writeInt8(value, this.updatePosition(1))
 	}
 
 	writeBytes(buffer, offset = 0, length = 0) {
@@ -215,22 +206,22 @@ class ByteArray {
 	}
 
 	writeDouble(value) {
-		this.endian ? this.buffer.writeDoubleBE(value, this.updatePosition(8, true)) : this.buffer.writeDoubleLE(value, this.updatePosition(8, true))
+		this.endian ? this.buffer.writeDoubleBE(value, this.updatePosition(8)) : this.buffer.writeDoubleLE(value, this.updatePosition(8))
 	}
 
 	writeFloat(value) {
-		this.endian ? this.buffer.writeFloatBE(value, this.updatePosition(4, true)) : this.buffer.writeFloatLE(value, this.updatePosition(4, true))
+		this.endian ? this.buffer.writeFloatBE(value, this.updatePosition(4)) : this.buffer.writeFloatLE(value, this.updatePosition(4))
 	}
 
 	writeInt(value) {
-		this.endian ? this.buffer.writeInt32BE(value, this.updatePosition(4, true)) : this.buffer.writeInt32LE(value, this.updatePosition(4, true))
+		this.endian ? this.buffer.writeInt32BE(value, this.updatePosition(4)) : this.buffer.writeInt32LE(value, this.updatePosition(4))
 	}
 
 	writeMultiByte(value, charSet = "utf8") {
 		const length = Buffer.byteLength(value)
 
 		if (Buffer.isEncoding(charSet)) {
-			this.buffer.write(value, this.updatePosition(length, true), length, charSet)
+			this.buffer.write(value, this.updatePosition(length), length, charSet)
 		}
 	}
 
@@ -239,19 +230,19 @@ class ByteArray {
 	}
 
 	writeShort(value) {
-		this.endian ? this.buffer.writeInt16BE(value, this.updatePosition(2, true)) : this.buffer.writeInt16LE(value, this.updatePosition(2, true))
+		this.endian ? this.buffer.writeInt16BE(value, this.updatePosition(2)) : this.buffer.writeInt16LE(value, this.updatePosition(2))
 	}
 
 	writeUnsignedByte(value) {
-		this.buffer.writeUInt8(value, this.updatePosition(1, true))
+		this.buffer.writeUInt8(value, this.updatePosition(1))
 	}
 
 	writeUnsignedInt(value) {
-		this.endian ? this.buffer.writeUInt32BE(value, this.updatePosition(4, true)) : this.buffer.writeUInt32LE(value, this.updatePosition(4, true))
+		this.endian ? this.buffer.writeUInt32BE(value, this.updatePosition(4)) : this.buffer.writeUInt32LE(value, this.updatePosition(4))
 	}
 
 	writeUnsignedShort(value) {
-		this.endian ? this.buffer.writeUInt16BE(value, this.updatePosition(2, true)) : this.buffer.writeUInt16LE(value, this.updatePosition(2, true))
+		this.endian ? this.buffer.writeUInt16BE(value, this.updatePosition(2)) : this.buffer.writeUInt16LE(value, this.updatePosition(2))
 	}
 
 	writeUTF(value) {
@@ -263,7 +254,7 @@ class ByteArray {
 
 		this.writeShort(length)
 
-		this.buffer.write(value, this.updatePosition(length, true), length)
+		this.buffer.write(value, this.updatePosition(length), length)
 	}
 
 	writeUTFBytes(value) {
