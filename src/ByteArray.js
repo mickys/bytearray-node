@@ -93,6 +93,8 @@ class ByteArray {
 
 		length = length || buffer.length
 
+		buffer.reset()
+
 		for (let i = 0; i < length; i++) {
 			buffer.buffer[i + offset] = this.readByte()
 		}
@@ -105,7 +107,7 @@ class ByteArray {
 
 		length = length || buffer.length
 
-		for (let i = offset, l = length; i < l && this.bytesAvailable > 0; i++) {
+		for (let i = offset, l = length; i < l; i++) {
 			buffer.writeByte(this.readByte())
 		}
 	}
@@ -151,14 +153,10 @@ class ByteArray {
 	}
 
 	readUTF() {
-		/*const length = this.readShort()
-		const position = this.updatePosition(length)
-		return this.buffer.toString("utf8", position, position + length)*/
-
 		const length = this.readShort()
-		const pos = this.position
-		this.position += length
-		return this.buffer.toString("utf8", pos, pos + length)
+		const position = this.updatePosition(length)
+
+		return this.buffer.toString("utf8", position, position + length)
 	}
 
 	readUTFBytes(length) {
@@ -200,7 +198,7 @@ class ByteArray {
 
 		buffer.reset()
 
-		for (let i = offset, l = length; i < l && this.bytesAvailable > 0; i++) {
+		for (let i = offset, l = length; i < l; i++) {
 			this.writeByte(buffer.readByte())
 		}
 	}
