@@ -86,20 +86,6 @@ class ByteArray {
 		return this.buffer.readInt8(this.updatePosition(1))
 	}
 
-	readFixedBytes(buffer, offset = 0, length = 0) {
-		if (offset < 0 || length < 0) {
-			throw new Error("Offset/Length can't be less than 0")
-		}
-
-		length = length || buffer.length
-
-		buffer.reset()
-
-		for (let i = 0; i < length; i++) {
-			buffer.buffer[i + offset] = this.readByte()
-		}
-	}
-
 	readBytes(buffer, offset = 0, length = 0) {
 		if (offset < 0 || length < 0) {
 			throw new Error("Offset/Length can't be less than 0")
@@ -153,6 +139,10 @@ class ByteArray {
 	}
 
 	readUTF() {
+		/*console.log("\r\nTHIS IS FROM READUTF")
+		console.log(this)
+		console.log("\r\n")*/
+
 		const length = this.readShort()
 		const position = this.updatePosition(length)
 
