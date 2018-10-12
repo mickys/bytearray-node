@@ -79,7 +79,7 @@ class ByteArray {
 	}
 
 	readBoolean() {
-		return Boolean(this.readByte())
+		return this.readByte() !== 0
 	}
 
 	readByte() {
@@ -93,6 +93,10 @@ class ByteArray {
 
 		if (length === 0) {
 			length = this.bytesAvailable
+		}
+
+		if (length > this.bytesAvailable) {
+			throw new Error("Length can't be greater than the bytes available")
 		}
 
 		for (let i = 0; i < length; i++) {
@@ -170,7 +174,7 @@ class ByteArray {
 	}
 
 	writeBoolean(value) {
-		this.writeByte(Number(value))
+		this.writeUnsignedByte(value ? 1 : 0)
 	}
 
 	writeByte(value) {
@@ -180,6 +184,14 @@ class ByteArray {
 	writeBytes(buffer, offset = 0, length = 0) {
 		if (offset < 0 || length < 0) {
 			throw new Error("Offset/Length can't be less than 0")
+		}
+
+		if (offset > this.length) {
+			offset = this.length
+		}
+
+		if (length === 0) {
+			length = this.length - offset
 		}
 
 		buffer.reset()
@@ -236,7 +248,7 @@ class ByteArray {
 			throw new Error("Length can't be greater than 65535")
 		}
 
-		this.writeShort(length)
+		this.writeUnsignedShort(length)
 
 		this.buffer.write(value, this.updatePosition(length), length)
 	}
