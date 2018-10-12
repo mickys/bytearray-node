@@ -91,10 +91,12 @@ class ByteArray {
 			throw new Error("Offset/Length can't be less than 0")
 		}
 
-		length = length || buffer.length
+		if (length === 0) {
+			length = this.bytesAvailable
+		}
 
-		for (let i = offset, l = length; i < l; i++) {
-			buffer.writeByte(this.readByte())
+		for (let i = 0; i < length; i++) {
+			buffer.buffer[i + offset] = this.readByte()
 		}
 	}
 
@@ -139,10 +141,6 @@ class ByteArray {
 	}
 
 	readUTF() {
-		/*console.log("\r\nTHIS IS FROM READUTF")
-		console.log(this)
-		console.log("\r\n")*/
-
 		const length = this.readShort()
 		const position = this.updatePosition(length)
 
@@ -183,8 +181,6 @@ class ByteArray {
 		if (offset < 0 || length < 0) {
 			throw new Error("Offset/Length can't be less than 0")
 		}
-
-		length = length || buffer.length
 
 		buffer.reset()
 
