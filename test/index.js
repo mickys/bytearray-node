@@ -11,23 +11,9 @@ tape("A quick test", (v) => {
 	ba.writeShort(2)
 	ba.writeByte(3)
 
-	ba.position = 0
-
 	v.equal(ba.readInt(), 1)
 	v.equal(ba.readShort(), 2)
 	v.equal(ba.readByte(), 3)
-
-	v.end()
-})
-
-tape("Write/read an array of bytes", (v) => {
-	const ba = new ByteArray()
-
-	ba.writeArrayOfBytes([1, 2, 3])
-
-	ba.position = 0
-
-	v.deepEqual(ba.readArrayOfBytes(0, 3), [1, 2, 3])
 
 	v.end()
 })
@@ -72,8 +58,6 @@ tape("Write/read AMF0 object", (v) => {
 		clientId: 1584259571
 	})
 
-	ba.position = 0
-
 	const obj = ba.readObject()
 
 	v.deepEqual(obj.data.values, [1, 2, 3, true, false, "maybe"])
@@ -107,8 +91,6 @@ tape("Write/read AMF3 object", (v) => {
 		clientId: 1584259571
 	})
 
-	ba.position = 0
-
 	const obj = ba.readObject()
 
 	v.deepEqual(obj.data.values, [1, 2, 3, true, false, "maybe"])
@@ -130,8 +112,6 @@ tape("You can serialize a function in AMF format", (v) => {
 	ba.writeObject({
 		"message": getMessage(0)
 	})
-
-	ba.position = 0
 
 	v.equal(ba.readObject().message, "Hello from AMF0")
 
@@ -157,42 +137,11 @@ tape("You can also serialize a class in AMF format", (v) => {
 
 	ba.writeObject(objectPerson)
 
-	ba.position = 0
-
 	const obj = ba.readObject()
 
 	v.equal(obj.firstName, "Zaseth")
 	v.equal(obj.lastName, "Secret")
 	v.equal(obj.age, 69)
-
-	v.end()
-})
-
-tape("Write and read an AMF packet", (v) => {
-	const ba = new ByteArray()
-
-	ba.AMFHeader.name = "myHeaderName"
-	ba.AMFHeader.value = "myHeaderValue"
-
-	ba.AMFMessage.targetUri = "myTargetUri"
-	ba.AMFMessage.responseUri = "myResponseUri"
-	ba.AMFMessage.value = "myMessageValue"
-
-	ba.writeAMFPacket({
-		version: 0,
-		headers: [ba.AMFHeader],
-		messages: [ba.AMFMessage]
-	})
-
-	const packet = ba.readAMFPacket()
-
-	v.equal(packet.version, 0)
-	v.equal(packet.headers.name, "myHeaderName")
-	v.equal(packet.headers.mustUnderstand, false)
-	v.equal(packet.headers.value, "myHeaderValue")
-	v.equal(packet.messages.targetUri, "myTargetUri")
-	v.equal(packet.messages.responseUri, "myResponseUri")
-	v.equal(packet.messages.value, "myMessageValue")
 
 	v.end()
 })
@@ -203,12 +152,6 @@ tape("Adobe example #1", (v) => {
 	ba.writeBoolean(false)
 	ba.writeDouble(Math.PI)
 
-	ba.position = 1
-
-	v.deepEqual(ba.readArrayOfBytes(1, 9), [64, 9, 33, 251, 84, 68, 45, 24])
-
-	ba.position = 0
-
 	v.equal(ba.readBoolean() === false, true)
 	v.equal(ba.readDouble(), 3.141592653589793)
 
@@ -218,17 +161,15 @@ tape("Adobe example #1", (v) => {
 tape("Adobe example #2", (v) => {
 	const ba = new ByteArray()
 
-	v.equal(ba.position, 0)
+	v.equal(ba.writePosition, 0)
 
 	ba.writeUTFBytes("Hello World!")
 
-	v.equal(ba.position, 12)
-
-	ba.position = 0
+	v.equal(ba.writePosition, 12)
 
 	v.equal(ba.readUTFBytes(6), "Hello ")
 	v.equal(ba.readUTFBytes(6), "World!")
-	v.equal(ba.position, 12)
+	v.equal(ba.readPosition, 12)
 
 	v.end()
 })
@@ -238,29 +179,27 @@ tape("Adobe example #3", (v) => {
 
 	ba.writeUnsignedInt(10)
 
-	v.equal(ba.position, 4)
+	v.equal(ba.writePosition, 4)
 
 	ba.writeBoolean(true)
 
-	v.equal(ba.position, 5)
+	v.equal(ba.writePosition, 5)
 
 	ba.writeUnsignedInt(26)
 
-	v.equal(ba.position, 9)
-
-	ba.position = 0
+	v.equal(ba.writePosition, 9)
 
 	v.equal(ba.readUnsignedInt(), 10)
-	v.equal(ba.position, 4)
+	v.equal(ba.readPosition, 4)
 	v.equal(ba.readBoolean(), true)
-	v.equal(ba.position, 5)
+	v.equal(ba.readPosition, 5)
 	v.equal(ba.readUnsignedInt(), 26)
-	v.equal(ba.position, 9)
+	v.equal(ba.readPosition, 9)
 
-	ba.position = 4
+	ba.readPosition = 4
 
 	v.equal(ba.readBoolean(), true)
-	v.equal(ba.position, 5)
+	v.equal(ba.readPosition, 5)
 
 	v.end()
 })

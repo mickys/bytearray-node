@@ -5,12 +5,10 @@ const AMF0 = require("./AMF0")
 
 class ByteArray {
 	constructor(buffer) {
-		this.position = 0
+		this.writePosition = 0
+		this.readPosition = 0
 		this.endian = true
 		this.objectEncoding = 3
-
-		this.AMFHeader = new(require("./AMFHeader"))
-		this.AMFMessage = new(require("./AMFMessage"))
 
 		if (buffer instanceof ByteArray) {
 			this.buffer = buffer.buffer
@@ -21,61 +19,28 @@ class ByteArray {
 		}
 	}
 
-	toBuffer() {
-		return this.buffer.slice(0, this.position)
-	}
-
 	get bytesAvailable() {
-		return this.length - this.position
+		return this.writePosition - this.readPosition
 	}
 
 	get length() {
 		return this.buffer.length
 	}
 
-	clear() {
-		this.buffer = Buffer.alloc(2048)
-		this.reset()
-	}
-
 	reset() {
 		this.position = 0
 	}
 
-	updatePosition(pos) {
-		const a = this.position
-
-		this.position += pos
-
-		return a
+	canWrite(length) {
+		return (this.length - this.writePosition) >= length
 	}
 
-	atomicCompareAndSwapIntAt(byteIndex, expectedValue, newValue) {
-		let byte = this.buffer[byteIndex]
+	scaleBuffer(length) {
+		const oldBuffer = this.buffer
 
-		if (byte === expectedValue) {
-			this.buffer[byteIndex] = newValue
-		}
+		this.buffer = Buffer.alloc(this.buffer.length + 2048 + length)
 
-		return byte
-	}
-
-	atomicCompareAndSwapLength(expectedLength, newLength) {
-		const prevLength = this.length
-
-		if (prevLength !== expectedLength) {
-			return prevLength
-		}
-
-		if (prevLength < newLength) {
-			this.buffer = Buffer.concat([this.buffer, Buffer.alloc(newLength - prevLength)], newLength)
-		}
-
-		if (prevLength > newLength) {
-			this.buffer = this.buffer.slice(newLength - 1, prevLength - 1)
-		}
-
-		return prevLength
+		oldBuffer.copy(this.buffer)
 	}
 
 	readBoolean() {
@@ -83,12 +48,16 @@ class ByteArray {
 	}
 
 	readByte() {
-		return this.buffer.readInt8(this.updatePosition(1))
+		const value = this.buffer.readInt8(this.readPosition)
+
+		this.readPosition += 1
+
+		return value
 	}
 
 	readBytes(buffer, offset = 0, length = 0) {
 		if (offset < 0 || length < 0) {
-			throw new Error("Offset/Length can't be less than 0")
+			throw new RangeError("Offset/Length can't be less than 0")
 		}
 
 		if (length === 0) {
@@ -96,28 +65,54 @@ class ByteArray {
 		}
 
 		if (length > this.bytesAvailable) {
-			throw new Error("Length can't be greater than the bytes available")
+			throw new RangeError("Length can't be greater than the bytes available")
 		}
 
-		for (let i = 0; i < length; i++) {
-			buffer.buffer[i + offset] = this.readByte()
+		const total = offset + length
+
+		if (total !== (offset + length)) {
+			throw new RangeError("32-bit overflow")
+		}
+
+		if (!buffer.canWrite(offset + length)) {
+			buffer.scaleBuffer(offset + length)
+		}
+
+		if (length > 0) {
+			for (let i = 0; i < length; i++) {
+				buffer.writeByte(this.readByte())
+			}
 		}
 	}
 
 	readDouble() {
-		return this.endian ? this.buffer.readDoubleBE(this.updatePosition(8)) : this.buffer.readDoubleLE(this.updatePosition(8))
+		const value = this.endian ? this.buffer.readDoubleBE(this.readPosition) : this.buffer.readDoubleLE(this.readPosition)
+
+		this.readPosition += 8
+
+		return value
 	}
 
 	readFloat() {
-		return this.endian ? this.buffer.readFloatBE(this.updatePosition(4)) : this.buffer.readFloatLE(this.updatePosition(4))
+		const value = this.endian ? this.buffer.readFloatBE(this.readPosition) : this.buffer.readFloatLE(this.readPosition)
+
+		this.readPosition += 4
+
+		return value
 	}
 
 	readInt() {
-		return this.endian ? this.buffer.readInt32BE(this.updatePosition(4)) : this.buffer.readInt32LE(this.updatePosition(4))
+		const value = this.endian ? this.buffer.readInt32BE(this.readPosition) : this.buffer.readInt32LE(this.readPosition)
+
+		this.readPosition += 4
+
+		return value
 	}
 
 	readMultiByte(length, charSet = "utf8") {
-		const position = this.updatePosition(length)
+		const position = this.readPosition
+
+		this.readPosition += length
 
 		if (Buffer.isEncoding(charSet)) {
 			return this.buffer.toString(charSet, position, position + length)
@@ -129,40 +124,48 @@ class ByteArray {
 	}
 
 	readShort() {
-		return this.endian ? this.buffer.readInt16BE(this.updatePosition(2)) : this.buffer.readInt16LE(this.updatePosition(2))
+		const value = this.endian ? this.buffer.readInt16BE(this.readPosition) : this.buffer.readInt16LE(this.readPosition)
+
+		this.readPosition += 2
+
+		return value
 	}
 
 	readUnsignedByte() {
-		return this.buffer.readUInt8(this.updatePosition(1))
+		const value = this.buffer.readUInt8(this.readPosition)
+
+		this.readPosition += 1
+
+		return value
 	}
 
 	readUnsignedInt() {
-		return this.endian ? this.buffer.readUInt32BE(this.updatePosition(4)) : this.buffer.readUInt32LE(this.updatePosition(4))
+		const value = this.endian ? this.buffer.readUInt32BE(this.readPosition) : this.buffer.readUInt32LE(this.readPosition)
+
+		this.readPosition += 4
+
+		return value
 	}
 
 	readUnsignedShort() {
-		return this.endian ? this.buffer.readUInt16BE(this.updatePosition(2)) : this.buffer.readUInt16LE(this.updatePosition(2))
+		const value = this.endian ? this.buffer.readUInt16BE(this.readPosition) : this.buffer.readUInt16LE(this.readPosition)
+
+		this.readPosition += 2
+
+		return value
 	}
 
 	readUTF() {
 		const length = this.readShort()
-		const position = this.updatePosition(length)
+		const position = this.readPosition
+
+		this.readPosition += length
 
 		return this.buffer.toString("utf8", position, position + length)
 	}
 
 	readUTFBytes(length) {
 		return this.readMultiByte(length)
-	}
-
-	readArrayOfBytes(start, end) {
-		const buf = []
-
-		for (let i = start, l = end; i < l; i++) {
-			buf.push(this.readUnsignedByte())
-		}
-
-		return buf
 	}
 
 	toJSON() {
@@ -174,11 +177,17 @@ class ByteArray {
 	}
 
 	writeBoolean(value) {
-		this.writeUnsignedByte(value ? 1 : 0)
+		this.writeByte(value ? 1 : 0)
 	}
 
 	writeByte(value) {
-		this.buffer.writeInt8(value, this.updatePosition(1))
+		if (!this.canWrite(1)) {
+			this.scaleBuffer(1)
+		}
+
+		this.buffer.writeInt8(value, this.writePosition)
+
+		this.writePosition += 1
 	}
 
 	writeBytes(buffer, offset = 0, length = 0) {
@@ -186,38 +195,66 @@ class ByteArray {
 			throw new Error("Offset/Length can't be less than 0")
 		}
 
-		if (offset > this.length) {
-			offset = this.length
+		if (offset > buffer.length) {
+			offset = buffer.length
 		}
 
 		if (length === 0) {
-			length = this.length - offset
+			length = buffer.length - offset
 		}
 
-		buffer.reset()
+		if (length > buffer.length - offset) {
+			throw new RangeError("Length can't be greater than the buffer length")
+		}
 
-		for (let i = offset, l = length; i < l; i++) {
-			this.writeByte(buffer.readByte())
+		if (length > 0) {
+			for (let i = offset; i < length; i++) {
+				this.writeByte(buffer.readByte())
+			}
 		}
 	}
 
 	writeDouble(value) {
-		this.endian ? this.buffer.writeDoubleBE(value, this.updatePosition(8)) : this.buffer.writeDoubleLE(value, this.updatePosition(8))
+		if (!this.canWrite(8)) {
+			this.scaleBuffer(8)
+		}
+
+		this.endian ? this.buffer.writeDoubleBE(value, this.writePosition) : this.buffer.writeDoubleLE(value, this.writePosition)
+
+		this.writePosition += 8
 	}
 
 	writeFloat(value) {
-		this.endian ? this.buffer.writeFloatBE(value, this.updatePosition(4)) : this.buffer.writeFloatLE(value, this.updatePosition(4))
+		if (!this.canWrite(4)) {
+			this.scaleBuffer(4)
+		}
+
+		this.endian ? this.buffer.writeFloatBE(value, this.writePosition) : this.buffer.writeFloatLE(value, this.writePosition)
+
+		this.writePosition += 4
 	}
 
 	writeInt(value) {
-		this.endian ? this.buffer.writeInt32BE(value, this.updatePosition(4)) : this.buffer.writeInt32LE(value, this.updatePosition(4))
+		if (!this.canWrite(4)) {
+			this.scaleBuffer(4)
+		}
+
+		this.endian ? this.buffer.writeInt32BE(value, this.writePosition) : this.buffer.writeInt32LE(value, this.writePosition)
+
+		this.writePosition += 4
 	}
 
 	writeMultiByte(value, charSet = "utf8") {
 		const length = Buffer.byteLength(value)
 
+		if (!this.canWrite(length)) {
+			this.scaleBuffer(length)
+		}
+
 		if (Buffer.isEncoding(charSet)) {
-			this.buffer.write(value, this.updatePosition(length), length, charSet)
+			this.buffer.write(value, this.writePosition, length, charSet)
+
+			this.writePosition += length
 		}
 	}
 
@@ -226,117 +263,65 @@ class ByteArray {
 	}
 
 	writeShort(value) {
-		this.endian ? this.buffer.writeInt16BE(value, this.updatePosition(2)) : this.buffer.writeInt16LE(value, this.updatePosition(2))
+		if (!this.canWrite(2)) {
+			this.scaleBuffer(2)
+		}
+
+		this.endian ? this.buffer.writeInt16BE(value, this.writePosition) : this.buffer.writeInt16LE(value, this.writePosition)
+
+		this.writePosition += 2
 	}
 
 	writeUnsignedByte(value) {
-		this.buffer.writeUInt8(value, this.updatePosition(1))
+		if (!this.canWrite(1)) {
+			this.scaleBuffer(1)
+		}
+
+		this.buffer.writeUInt8(value, this.writePosition)
+
+		this.writePosition += 1
 	}
 
 	writeUnsignedInt(value) {
-		this.endian ? this.buffer.writeUInt32BE(value, this.updatePosition(4)) : this.buffer.writeUInt32LE(value, this.updatePosition(4))
+		if (!this.canWrite(4)) {
+			this.scaleBuffer(4)
+		}
+
+		this.endian ? this.buffer.writeUInt32BE(value, this.writePosition) : this.buffer.writeUInt32LE(value, this.writePosition)
+
+		this.writePosition += 4
 	}
 
 	writeUnsignedShort(value) {
-		this.endian ? this.buffer.writeUInt16BE(value, this.updatePosition(2)) : this.buffer.writeUInt16LE(value, this.updatePosition(2))
+		if (!this.canWrite(2)) {
+			this.scaleBuffer(2)
+		}
+
+		this.endian ? this.buffer.writeUInt16BE(value, this.writePosition) : this.buffer.writeUInt16LE(value, this.writePosition)
+
+		this.writePosition += 2
 	}
 
 	writeUTF(value) {
 		const length = Buffer.byteLength(value)
 
+		if (!this.canWrite(length)) {
+			this.scaleBuffer(length)
+		}
+
 		if (length > 65535) {
-			throw new Error("Length can't be greater than 65535")
+			throw new RangeError("Length can't be greater than 65535")
 		}
 
 		this.writeUnsignedShort(length)
 
-		this.buffer.write(value, this.updatePosition(length), length)
+		this.buffer.write(value, this.writePosition, length)
+
+		this.writePosition += length
 	}
 
 	writeUTFBytes(value) {
 		this.writeMultiByte(value)
-	}
-
-	writeArrayOfBytes(bytes) {
-		for (let i = 0, l = bytes.length; i < l; i++) {
-			this.writeUnsignedByte(bytes[i])
-		}
-	}
-
-	writeAMFPacket(value) {
-		if (!value.headers instanceof Array) {
-			throw new TypeError("Headers must be inside of an array")
-		}
-
-		if (!value.messages instanceof Array) {
-			throw new TypeError("Messages must be inside of an array")
-		}
-
-		this.writeShort(value.version)
-		this.writeShort(value.headers.length)
-
-		value.headers.forEach(header => {
-			this.writeUTF(header.name)
-			this.writeBoolean(header.mustUnderstand)
-			this.writeInt(-1)
-			this.objectEncoding = 0
-			this.writeObject(header.value)
-		})
-
-		this.writeShort(value.messages.length)
-
-		value.messages.forEach(message => {
-			this.writeUTF(message.targetUri)
-			this.writeUTF(message.responseUri)
-			this.writeInt(-1)
-			this.writeByte(17)
-			this.objectEncoding = 3
-			this.writeObject(message.value)
-		})
-	}
-
-	readAMFPacket() {
-		this.position = 0
-
-		const value = {}
-
-		value.version = this.readShort()
-
-		const headerCount = this.readShort()
-
-		value.headers = []
-
-		for (let i = 0; i < headerCount; i++) {
-			const header = value.headers
-
-			header.name = this.readUTF()
-			header.mustUnderstand = this.readBoolean()
-
-			if (this.readInt() === -1) {
-				this.objectEncoding = 0
-
-				header.value = this.readObject()
-			}
-		}
-
-		const messageCount = this.readShort()
-
-		value.messages = []
-
-		for (let i = 0; i < messageCount; i++) {
-			const message = value.messages
-
-			message.targetUri = this.readUTF()
-			message.responseUri = this.readUTF()
-
-			if (this.readInt() === -1 && this.readByte() === 17) {
-				this.objectEncoding = 3
-
-				message.value = this.readObject()
-			}
-		}
-
-		return value
 	}
 }
 
