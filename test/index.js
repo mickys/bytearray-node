@@ -18,6 +18,31 @@ tape("A quick test", (v) => {
 	v.end()
 })
 
+tape("This library also supports writeBytes/readBytes", (v) => {
+	const ba = new ByteArray()
+
+	ba.writeByte(1)
+	ba.writeByte(2)
+
+	v.equal(ba.writePosition, 2)
+
+	const rb = new ByteArray()
+
+	v.equal(rb.writePosition, 0)
+	v.equal(rb.readPosition, 0)
+
+	rb.writeBytes(ba, 0, 2)
+
+	v.equal(rb.writePosition, 2)
+
+	v.equal(rb.readByte(), 1)
+	v.equal(rb.readByte(), 2)
+
+	v.equal(rb.readPosition, 2)
+
+	v.end()
+})
+
 tape("You can also use 2 ByteArray constructors", (v) => {
 	const ba = new ByteArray()
 
