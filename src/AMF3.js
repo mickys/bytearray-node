@@ -1,6 +1,7 @@
 "use strict"
 
-const _ = require("lodash")
+const extend = require("lodash").extend
+const difference = require("lodash").difference
 
 class AMF3 {
 	constructor(ba) {
@@ -22,7 +23,7 @@ class AMF3 {
 		let test = 0
 
 		for (const x in array) {
-			if (x != test) {
+			if (x !== test) {
 				return false
 			}
 
@@ -132,10 +133,10 @@ class AMF3 {
 
 			this.objects.set(val, this.objects.size)
 
-			const name = _.result(val, "@name", "")
-			const dynamic = _.result(val, "@dynamic", true)
-			const externalizable = _.result(val, "@externalizable", false)
-			const properties = _.result(val, "@properties", [])
+			const name = val["@name"] !== undefined ? val["@name"] : ""
+			const dynamic = val["@dynamic"] !== undefined ? val["@dynamic"] : true
+			const externalizable = val["@externalizable"] !== undefined ? val["@externalizable"] : false
+			const properties = val["@properties"] !== undefined ? val["@properties"] : []
 
 			if (!this.traits.has(name)) {
 				this.traits.set(name, this.traits.size)
@@ -158,7 +159,7 @@ class AMF3 {
 
 				if (dynamic) {
 					const keys = Object.keys(val)
-					const members = _.difference(keys, properties)
+					const members = difference(keys, properties)
 
 					for (const member of members) {
 						if (member[0] != "@") {
@@ -318,10 +319,10 @@ class AMF3 {
 						traits["@properties"].push(this.readString())
 					}
 
-					_.extend(val, traits)
+					extend(val, traits)
 				} else {
 					if (this.traits.has(index >> 2)) {
-						_.extend(val, this.traits.get(index >> 2))
+						extend(val, this.traits.get(index >> 2))
 					}
 				}
 

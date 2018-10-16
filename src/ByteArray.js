@@ -1,5 +1,8 @@
 "use strict"
 
+const zlib = require("zlib")
+const lzma = require("lzma-native")
+
 const AMF3 = require("./AMF3")
 const AMF0 = require("./AMF0")
 
@@ -31,6 +34,10 @@ class ByteArray {
 
 	clear() {
 		this.buffer = Buffer.alloc(DEFAULT_SIZE)
+		this.reset()
+	}
+
+	reset() {
 		this.writePosition = 0
 		this.readPosition = 0
 	}
@@ -73,6 +80,48 @@ class ByteArray {
 		}
 
 		return prevLength
+	}
+
+	compress(algorithm) {
+		algorithm = algorithm.toLowerCase()
+
+		if (algorithm === "zlib") {
+			this.buffer = zlib.deflateSync(this.buffer)
+		} else if (algorithm === "deflate") {
+			this.buffer = zlib.deflateRawSync(this.buffer)
+		} else if (algorithm === "lzma") {
+			lzma.LZMA().compress(this.buffer, 1, (res) => {
+				this.buffer = res
+			})
+		} else {
+			throw new Error("Unknown algorithm")
+		}
+	}
+
+	deflate() {
+		this.compress("deflate")
+	}
+
+	inflate() {
+		this.uncompress("deflate")
+	}
+
+	uncompress(algorithm) {
+		algorithm = algorithm.toLowerCase()
+
+		if (algorithm === "zlib") {
+			this.buffer = zlib.inflateSync(this.buffer)
+		} else if (algorithm === "deflate") {
+			this.buffer = zlib.inflateRawSync(this.buffer)
+		} else if (algorithm === "lzma") {
+			lzma.LZMA().decompress(this.buffer, (res) => {
+				this.buffer = res
+			})
+		} else {
+			throw new Error("Unknown algorithm")
+		}
+
+		this.reset()
 	}
 
 	readBoolean() {
