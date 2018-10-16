@@ -123,16 +123,6 @@ class AMF3 {
 
 				this.writeString("")
 			}
-		} else if (typeof val === "ByteArray") {
-			this.ba.writeByte(12)
-
-			if (this.objects.has(val)) {
-				return this.writeUnsignedInt29(this.objects.get(val) << 1 | 1)
-			}
-
-			this.objects.set(val, this.objects.size)
-
-			this.ba.writeBytes(val)
 		} else if (val instanceof Object) {
 			this.ba.writeByte(10)
 
@@ -299,22 +289,6 @@ class AMF3 {
 				}
 
 				return val
-			} else {
-				if (this.objects.has(index >> 1)) {
-					return this.objects.get(index >> 1)
-				}
-			}
-		} else if (marker === 12) {
-			const index = this.readUnsignedInt29()
-
-			if (index & 1) {
-				const ba = new ByteArray()
-
-				this.objects.set(this.objects.size, ba)
-
-				ba.readBytes(this.ba, 0, index >> 1)
-
-				return ba
 			} else {
 				if (this.objects.has(index >> 1)) {
 					return this.objects.get(index >> 1)

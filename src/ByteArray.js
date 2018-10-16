@@ -3,6 +3,8 @@
 const AMF3 = require("./AMF3")
 const AMF0 = require("./AMF0")
 
+const DEFAULT_SIZE = 2048
+
 class ByteArray {
 	constructor(buffer) {
 		this.writePosition = 0
@@ -15,7 +17,7 @@ class ByteArray {
 		} else if (Buffer.isBuffer(buffer)) {
 			this.buffer = buffer
 		} else {
-			this.buffer = Buffer.alloc(typeof(buffer) === "number" ? parseInt(buffer) : 2048)
+			this.buffer = Buffer.alloc(typeof(buffer) === "number" ? parseInt(buffer) : DEFAULT_SIZE)
 		}
 	}
 
@@ -27,8 +29,10 @@ class ByteArray {
 		return this.buffer.length
 	}
 
-	reset() {
-		this.position = 0
+	clear() {
+		this.buffer = Buffer.alloc(DEFAULT_SIZE)
+		this.writePosition = 0
+		this.readPosition = 0
 	}
 
 	canWrite(length) {
@@ -38,9 +42,37 @@ class ByteArray {
 	scaleBuffer(length) {
 		const oldBuffer = this.buffer
 
-		this.buffer = Buffer.alloc(this.buffer.length + 2048 + length)
+		this.buffer = Buffer.alloc(this.buffer.length + DEFAULT_SIZE + length)
 
 		oldBuffer.copy(this.buffer)
+	}
+
+	atomicCompareAndSwapIntAt(byteIndex, expectedValue, newValue) {
+		let byte = this.buffer[byteIndex]
+
+		if (byte === expectedValue) {
+			this.buffer[byteIndex] = newValue
+		}
+
+		return byte
+	}
+
+	atomicCompareAndSwapLength(expectedLength, newLength) {
+		const prevLength = this.length
+
+		if (prevLength !== expectedLength) {
+			return prevLength
+		}
+
+		if (prevLength < newLength) {
+			this.buffer = Buffer.concat([this.buffer, Buffer.alloc(newLength - prevLength)], newLength)
+		}
+
+		if (prevLength > newLength) {
+			this.buffer = this.buffer.slice(newLength - 1, prevLength - 1)
+		}
+
+		return prevLength
 	}
 
 	readBoolean() {
