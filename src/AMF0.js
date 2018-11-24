@@ -3,84 +3,95 @@
 class AMF0 {
   constructor(ba) {
     this.ba = ba
-    this.references = new Map()
+    this.references = []
   }
 
+  /**
+   * Checks if the array is strict
+   * @param {Array} array
+   */
   isStrict(array) {
     return Object.keys(array).reduce((isStrict, key) => isStrict && Number.isInteger(key), true)
   }
 
-  writeData(val) {
-    if (val === null) {
+  /**
+   * Serializes data
+   * @param {?} value
+   */
+  writeData(value) {
+    if (value === null) {
       this.ba.writeByte(5)
-    } else if (val === undefined) {
+    } else if (value === undefined) {
       this.ba.writeByte(6)
-    } else if (typeof val === "boolean") {
+    } else if (typeof value === "boolean") {
       this.ba.writeByte(1)
-      this.ba.writeBoolean(val)
-    } else if (typeof val === "number") {
+      this.ba.writeBoolean(value)
+    } else if (typeof value === "number") {
       this.ba.writeByte(0)
-      this.ba.writeDouble(val)
-    } else if (val instanceof Date) {
+      this.ba.writeDouble(value)
+    } else if (value instanceof Date) {
       this.ba.writeByte(11)
-      this.ba.writeDouble(val.getTime())
-    } else if (typeof val === "string") {
+      this.ba.writeDouble(value.getTime())
+    } else if (typeof value === "string") {
       this.ba.writeByte(2)
-      this.writeString(val)
-    } else if (val instanceof Array) {
-      if (this.references.has(val)) {
-        return this.writeReference(val)
+      this.writeString(value)
+    } else if (value instanceof Array) {
+      if (Object.keys(this.references).includes(value)) {
+        return this.writeReference(value)
       }
 
-      this.references.set(val, this.references.size)
+      this.references[value] = Object.keys(this.references).length
 
-      if (this.isStrict(val)) {
+      if (this.isStrict(value)) {
         this.ba.writeByte(10)
-        this.ba.writeUnsignedInt(val.length)
+        this.ba.writeUnsignedInt(value.length)
 
-        for (const element of val) {
+        for (const element of value) {
           this.writeData(element)
         }
       } else {
         this.ba.writeByte(8)
-        this.ba.writeUnsignedInt(val.length)
+        this.ba.writeUnsignedInt(value.length)
 
-        for (const key in val) {
+        for (const key in value) {
           this.writeString(key)
-          this.writeData(val[key])
+          this.writeData(value[key])
         }
 
         this.ba.writeShort(0)
         this.ba.writeByte(9)
       }
-    } else if (val instanceof Object) {
-      if (this.references.has(val)) {
-        return this.writeReference(val)
+    } else if (value instanceof Object) {
+      if (Object.keys(this.references).includes(value)) {
+        return this.writeReference(value)
       }
 
-      this.references.set(val, this.references.size)
+      this.references[value] = Object.keys(this.references).length
 
-      if (val["@name"] !== undefined) {
+      if (value["@name"] !== undefined) {
         this.ba.writeByte(16)
-        this.writeString(val["@name"])
+        this.writeString(value["@name"])
       } else {
         this.ba.writeByte(3)
       }
 
-      for (const key in val) {
+      for (const key in value) {
         if (key[0] !== "@") {
           this.writeString(key)
-          this.writeData(val[key])
+          this.writeData(value[key])
         }
       }
 
       this.ba.writeShort(0)
       this.ba.writeByte(9)
     } else {
-      throw new TypeError(`Unknown type: ${typeof val}`)
+      throw new TypeError(`Unknown type: ${typeof value}`)
     }
   }
 
+  /**
+   * Deserializes data
+   */
   readData() {
     const marker = this.ba.readByte()
 
@@ -99,61 +110,61 @@ class AMF0 {
     } else if (marker === 12 || marker === 15) {
       return this.ba.readUTFBytes(this.ba.readUnsignedInt())
     } else if (marker === 10) {
-      const val = []
+      const value = []
 
-      this.references.set(this.references.size, val)
+      this.references[Object.keys(this.references).length] = value
 
-      const len = this.ba.readUnsignedInt()
+      const length = this.ba.readUnsignedInt()
 
-      for (let i = 0; i < len; i++) {
-        val.push(this.readData())
+      for (let i = 0; i < length; i++) {
+        value.push(this.readData())
       }
 
-      return val
+      return value
     } else if (marker === 3) {
-      const val = {}
+      const value = {}
 
-      this.references.set(this.references.size, val)
+      this.references[Object.keys(this.references).length] = value
 
       for (let key = this.ba.readUTF(); key !== ""; key = this.ba.readUTF()) {
         if (key[0] !== "@") {
-          val[key] = this.readData()
+          value[key] = this.readData()
         }
       }
 
       if (this.ba.readByte() === 9) {
-        return val
+        return value
       }
     } else if (marker === 16) {
-      const val = {}
+      const value = {}
 
-      this.references.set(this.references.size, val)
+      this.references[Object.keys(this.references).length] = value
 
-      val["@name"] = this.ba.readUTF()
+      value["@name"] = this.ba.readUTF()
 
       for (let key = this.ba.readUTF(); key !== ""; key = this.ba.readUTF()) {
         if (key[0] !== "@") {
-          val[key] = this.readData()
+          value[key] = this.readData()
         }
       }
 
       if (this.ba.readByte() === 9) {
-        return val
+        return value
       }
     } else if (marker === 7) {
-      return this.references.get(this.ba.readUnsignedShort())
+      return this.references[this.ba.readUnsignedShort()]
     } else if (marker === 8) {
-      const val = []
-      const len = this.ba.readUnsignedInt()
-      let elementName = this.ba.readUTF()
+      const value = []
+      const length = this.ba.readUnsignedInt()
+      let name = this.ba.readUTF()
 
-      while (elementName.length > 0 && len !== 0) {
-        val[elementName] = this.readData()
-        elementName = this.ba.readUTF()
+      while (name.length > 0 && length !== 0) {
+        value[name] = this.readData()
+        name = this.ba.readUTF()
       }
 
       if (this.ba.readByte() === 9) {
-        return val
+        return value
       }
     } else if (marker === 17) {
       this.ba.objectEncoding = 3
@@ -164,8 +175,12 @@ class AMF0 {
     }
   }
 
-  writeReference(val) {
-    const reference = this.references.get(val)
+  /**
+   * Writes a reference
+   * @param {Number} value
+   */
+  writeReference(value) {
+    const reference = this.references[value]
 
     if (reference <= 0xffff) {
       this.ba.writeByte(7)
@@ -173,14 +188,18 @@ class AMF0 {
     }
   }
 
-  writeString(val) {
-    if (val.length <= 0xffff) {
-      return this.ba.writeUTF(val)
+  /**
+   * Writes a string
+   * @param {String} value
+   */
+  writeString(value) {
+    if (value.length <= 0xffff) {
+      return this.ba.writeUTF(value)
     }
 
     this.ba.writeByte(12)
-    this.ba.writeUnsignedInt(val.length)
-    this.ba.writeUTFBytes(val)
+    this.ba.writeUnsignedInt(value.length)
+    this.ba.writeUTFBytes(value)
   }
 }
 
