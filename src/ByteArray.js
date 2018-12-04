@@ -394,21 +394,21 @@ class ByteArray {
     let exponent = (x >> 23) & 0xff
 
     if (exponent < 103) {
-      this.writeUnsignedShort(bits)
+      return this.writeUnsignedShort(bits)
     }
 
     if (exponent > 142) {
       bits |= 0x7c00
       bits |= (exponent == 255 ? 0 : 1) && x & 0x007fffff
 
-      this.writeUnsignedShort(bits)
+      return this.writeUnsignedShort(bits)
     }
 
     if (exponent < 113) {
       mantissa |= 0x0800
       bits |= (mantissa >> (114 - exponent)) + ((mantissa >> (113 - exponent)) & 1)
 
-      this.writeUnsignedShort(bits)
+      return this.writeUnsignedShort(bits)
     }
 
     bits |= ((exponent - 112) << 10) | (mantissa >> 1)
