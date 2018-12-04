@@ -23,6 +23,7 @@ class ByteArray {
 
   /**
    * Returns the amount of bytes available
+   * @returns {Number}
    */
   get bytesAvailable() {
     return this.writePosition - this.readPosition
@@ -30,6 +31,7 @@ class ByteArray {
 
   /**
    * Returns the length of the buffer
+   * @returns {Number}
    */
   get length() {
     return this.buffer.length
@@ -54,6 +56,7 @@ class ByteArray {
   /**
    * Checks if you can write data
    * @param {Number} length
+   * @returns {Boolean}
    */
   canWrite(length) {
     return this.length - this.writePosition >= length
@@ -66,6 +69,7 @@ class ByteArray {
   scaleBuffer(length) {
     const oldBuffer = this.buffer
 
+    // DEFAULT_SIZE avoids memory leaks
     this.buffer = Buffer.alloc(this.length + DEFAULT_SIZE + length)
 
     oldBuffer.copy(this.buffer)
@@ -73,6 +77,7 @@ class ByteArray {
 
   /**
    * Reads a boolean
+   * @returns {Boolean}
    */
   readBoolean() {
     return this.readByte() !== 0
@@ -80,6 +85,7 @@ class ByteArray {
 
   /**
    * Reads a signed byte
+   * @returns {Number}
    */
   readByte() {
     const value = this.buffer.readInt8(this.readPosition)
@@ -105,7 +111,7 @@ class ByteArray {
     }
 
     if (length > this.bytesAvailable) {
-      throw new RangeError("Length can't be greater than the bytes available")
+      throw new RangeError("Length can't be greater than the amount of bytes available")
     }
 
     if (!buffer.canWrite(offset + length)) {
@@ -121,6 +127,7 @@ class ByteArray {
 
   /**
    * Reads a double
+   * @returns {Number}
    */
   readDouble() {
     const value = this.endian ? this.buffer.readDoubleBE(this.readPosition) : this.buffer.readDoubleLE(this.readPosition)
@@ -132,6 +139,7 @@ class ByteArray {
 
   /**
    * Reads a float
+   * @returns {Number}
    */
   readFloat() {
     const value = this.endian ? this.buffer.readFloatBE(this.readPosition) : this.buffer.readFloatLE(this.readPosition)
@@ -142,7 +150,27 @@ class ByteArray {
   }
 
   /**
+   * Reads a half precision float
+   * @returns {Number}
+   */
+  readHalfFloat() {
+    const value = this.readUnsignedShort()
+    const sign = (value & 0x8000) >> 15
+    const exponent = (value & 0x7c00) >> 10
+    const fraction = value & 0x03ff
+
+    if (exponent === 0) {
+      return (sign ? -1 : 1) * Math.pow(2, -14) * (fraction / Math.pow(2, 10))
+    } else if (exponent === 0x1f) {
+      return fraction ? NaN : (sign ? -1 : 1) * Infinity
+    }
+
+    return (sign ? -1 : 1) * Math.pow(2, exponent - 15) * (1 + fraction / Math.pow(2, 10))
+  }
+
+  /**
    * Reads a signed int
+   * @returns {Number}
    */
   readInt() {
     const value = this.endian ? this.buffer.readInt32BE(this.readPosition) : this.buffer.readInt32LE(this.readPosition)
@@ -156,6 +184,7 @@ class ByteArray {
    * Reads a multibyte string
    * @param {Length} length
    * @param {String} charSet
+   * @returns {String}
    */
   readMultiByte(length, charSet = "utf8") {
     const position = this.readPosition
@@ -169,6 +198,7 @@ class ByteArray {
 
   /**
    * Reads an object
+   * @returns {Object}
    */
   readObject() {
     return this.objectEncoding === 3 ? new AMF3(this).readData() : new AMF0(this).readData()
@@ -176,6 +206,7 @@ class ByteArray {
 
   /**
    * Reads a signed short
+   * @returns {Number}
    */
   readShort() {
     const value = this.endian ? this.buffer.readInt16BE(this.readPosition) : this.buffer.readInt16LE(this.readPosition)
@@ -187,6 +218,7 @@ class ByteArray {
 
   /**
    * Reads an unsigned byte
+   * @returns {Number}
    */
   readUnsignedByte() {
     const value = this.buffer.readUInt8(this.readPosition)
@@ -198,6 +230,7 @@ class ByteArray {
 
   /**
    * Reads an unsigned int
+   * @returns {Number}
    */
   readUnsignedInt() {
     const value = this.endian ? this.buffer.readUInt32BE(this.readPosition) : this.buffer.readUInt32LE(this.readPosition)
@@ -209,6 +242,7 @@ class ByteArray {
 
   /**
    * Reads an unsigned short
+   * @returns {Number}
    */
   readUnsignedShort() {
     const value = this.endian ? this.buffer.readUInt16BE(this.readPosition) : this.buffer.readUInt16LE(this.readPosition)
@@ -220,6 +254,7 @@ class ByteArray {
 
   /**
    * Reads a UTF-8 string
+   * @returns {String}
    */
   readUTF() {
     const length = this.readShort()
@@ -233,6 +268,7 @@ class ByteArray {
   /**
    * Reads multiple UTF-8 bytes
    * @param {Number} length
+   * @returns {String}
    */
   readUTFBytes(length) {
     return this.readMultiByte(length)
@@ -240,6 +276,7 @@ class ByteArray {
 
   /**
    * Converts the buffer to JSON
+   * @returns {JSON}
    */
   toJSON() {
     return this.buffer.toJSON()
@@ -250,6 +287,7 @@ class ByteArray {
    * @param {String} charSet
    * @param {Number} offset
    * @param {Number} length
+   * @returns {String}
    */
   toString(charSet = "utf8", offset = 0, length = this.length) {
     return this.buffer.toString(charSet, offset, length)
@@ -297,7 +335,7 @@ class ByteArray {
     }
 
     if (length > buffer.length - offset) {
-      throw new RangeError("Length can't be greater than the buffer length")
+      throw new RangeError("Length can't be greater than the length of the buffer")
     }
 
     if (length > 0) {
@@ -333,6 +371,50 @@ class ByteArray {
     this.endian ? this.buffer.writeFloatBE(value, this.writePosition) : this.buffer.writeFloatLE(value, this.writePosition)
 
     this.writePosition += 4
+  }
+
+  /**
+   * Writes a half precision float
+   * @param {Number} value
+   */
+  writeHalfFloat(value) {
+    if (!this.canWrite(2)) {
+      this.scaleBuffer(2)
+    }
+
+    const floatView = new Float32Array(1)
+    const int32View = new Int32Array(floatView.buffer)
+
+    floatView[0] = value
+
+    const x = int32View[0]
+
+    let bits = (x >> 16) & 0x8000
+    let mantissa = (x >> 12) & 0x07ff
+    let exponent = (x >> 23) & 0xff
+
+    if (exponent < 103) {
+      this.writeUnsignedShort(bits)
+    }
+
+    if (exponent > 142) {
+      bits |= 0x7c00
+      bits |= (exponent == 255 ? 0 : 1) && x & 0x007fffff
+
+      this.writeUnsignedShort(bits)
+    }
+
+    if (exponent < 113) {
+      mantissa |= 0x0800
+      bits |= (mantissa >> (114 - exponent)) + ((mantissa >> (113 - exponent)) & 1)
+
+      this.writeUnsignedShort(bits)
+    }
+
+    bits |= ((exponent - 112) << 10) | (mantissa >> 1)
+    bits += mantissa & 1
+
+    this.writeUnsignedShort(bits)
   }
 
   /**

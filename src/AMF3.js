@@ -13,7 +13,9 @@ class AMF3 {
 
   /**
    * Checks if the value is safe
+   * Separate function as it's a utility
    * @param {Number} value
+   * @returns {Boolean}
    */
   isSafe(value) {
     return -Math.pow(2, 28) <= value && value <= +Math.pow(2, 28) - 1
@@ -21,7 +23,9 @@ class AMF3 {
 
   /**
    * Checks if the array is dense
+   * Separate function as it's a utility
    * @param {Array} array
+   * @returns {Boolean}
    */
   isDenseArray(array) {
     if (!array) {
@@ -42,7 +46,123 @@ class AMF3 {
   }
 
   /**
+   * Writes an array
+   * Separate function as it's big
+   * @param {Array} value
+   */
+  writeArray(value) {
+    this.ba.writeByte(9)
+
+    if (Object.keys(this.objects).includes(value)) {
+      return this.writeUnsignedInt29((this.objects[value] << 1) | 0)
+    }
+
+    this.objects[value] = Object.keys(this.objects).length
+
+    if (this.isDenseArray(value)) {
+      this.writeUnsignedInt29((value.length << 1) | 1)
+      this.writeString("")
+
+      for (const i in value) {
+        this.writeData(value[i])
+      }
+    } else {
+      this.writeUnsignedInt29(1)
+
+      for (const key in value) {
+        this.writeString(key)
+        this.writeData(value[key])
+      }
+
+      this.writeString("")
+    }
+  }
+
+  /**
+   * Writes an object
+   * Separate function as it's big
+   * @param {Object} value
+   */
+  writeObject(value) {
+    this.ba.writeByte(10)
+
+    if (Object.keys(this.objects).includes(value)) {
+      return this.writeUnsignedInt29((this.objects[value] << 1) | 0)
+    }
+
+    this.objects[value] = Object.keys(this.objects).length
+
+    const name = value["@name"] !== undefined ? value["@name"] : ""
+    const dynamic = value["@dynamic"] !== undefined ? value["@dynamic"] : true
+    const externalizable = value["@externalizable"] !== undefined ? value["@externalizable"] : false
+    const properties = value["@properties"] !== undefined ? value["@properties"] : []
+
+    if (!Object.keys(this.traits).includes(name)) {
+      this.traits[name] = Object.keys(this.traits).length
+
+      this.writeUnsignedInt29((properties.length << 4) | (dynamic << 3) | (externalizable << 2) | 3)
+      this.writeString(name)
+
+      for (const property of properties) {
+        this.writeString(property)
+      }
+    } else {
+      this.writeUnsignedInt29((this.traits[name] << 2) | 1)
+    }
+
+    if (!externalizable) {
+      for (const property of properties) {
+        if (property[0] !== "@") {
+          this.writeData(value[property])
+        }
+      }
+
+      if (dynamic) {
+        const keys = Object.keys(value)
+        const members = keys.filter((x) => !properties.includes(x))
+
+        for (const member of members) {
+          if (member[0] != "@") {
+            this.writeString(member)
+            this.writeData(value[member])
+          }
+        }
+
+        this.writeString("")
+      }
+    } else {
+      switch (name) {
+        case "flex.messaging.io.ArrayCollection":
+          this.writeData(value.source)
+          break
+        default:
+          throw new Error("Unsupported externalizable")
+      }
+    }
+  }
+
+  /**
+   * Writes a string
+   * Separate function as it's used multiple times
+   * @param {String} value
+   */
+  writeString(value) {
+    if (value.length === 0 || value === "") {
+      return this.writeUnsignedInt29((0 << 1) | 1)
+    }
+
+    if (Object.keys(this.strings).includes(value)) {
+      return this.writeUnsignedInt29((this.strings[value] << 1) | 0)
+    }
+
+    this.strings[value] = Object.keys(this.strings).length
+    this.writeUnsignedInt29((value.length << 1) | 1)
+    this.ba.writeUTFBytes(value)
+  }
+
+  /**
    * Writes an unsigned int29
+   * Separate function as it's used multiple times
    * @param {Number} value
    */
   writeUnsignedInt29(value) {
@@ -63,25 +183,6 @@ class AMF3 {
     } else {
       throw new RangeError(`${value} is out of range`)
     }
-  }
-
-  /**
-   * Writes a string
-   * @param {String} value
-   */
-  writeString(value) {
-    if (value.length === 0 || value === "") {
-      return this.writeUnsignedInt29((0 << 1) | 1)
-    }
-
-    if (Object.keys(this.strings).includes(value)) {
-      return this.writeUnsignedInt29((this.strings[value] << 1) | 0)
-    }
-
-    this.strings[value] = Object.keys(this.strings).length
-
-    this.writeUnsignedInt29((value.length << 1) | 1)
-    this.ba.writeUTFBytes(value)
   }
 
   /**
@@ -118,94 +219,162 @@ class AMF3 {
       this.ba.writeByte(6)
       this.writeString(value)
     } else if (value instanceof Array) {
-      this.ba.writeByte(9)
-
-      if (Object.keys(this.objects).includes(value)) {
-        return this.writeUnsignedInt29((this.objects[value] << 1) | 0)
-      }
-
-      this.objects[value] = Object.keys(this.objects).length
-
-      if (this.isDenseArray(value)) {
-        this.writeUnsignedInt29((value.length << 1) | 1)
-        this.writeString("")
-
-        for (const i in value) {
-          this.writeData(value[i])
-        }
-      } else {
-        this.writeUnsignedInt29(1)
-
-        for (const key in value) {
-          this.writeString(key)
-          this.writeData(value[key])
-        }
-
-        this.writeString("")
-      }
+      this.writeArray(value)
     } else if (value instanceof Object) {
-      this.ba.writeByte(10)
-
-      if (Object.keys(this.objects).includes(value)) {
-        return this.writeUnsignedInt29((this.objects[value] << 1) | 0)
-      }
-
-      this.objects[value] = Object.keys(this.objects).length
-
-      const name = value["@name"] !== undefined ? value["@name"] : ""
-      const dynamic = value["@dynamic"] !== undefined ? value["@dynamic"] : true
-      const externalizable = value["@externalizable"] !== undefined ? value["@externalizable"] : false
-      const properties = value["@properties"] !== undefined ? value["@properties"] : []
-
-      if (!Object.keys(this.traits).includes(name)) {
-        this.traits[name] = Object.keys(this.traits).length
-
-        this.writeUnsignedInt29((properties.length << 4) | (dynamic << 3) | (externalizable << 2) | 3)
-        this.writeString(name)
-
-        for (const property of properties) {
-          this.writeString(property)
-        }
-      } else {
-        this.writeUnsignedInt29((this.traits[name] << 2) | 1)
-      }
-
-      if (!externalizable) {
-        for (const property of properties) {
-          if (property[0] !== "@") {
-            this.writeData(value[property])
-          }
-        }
-
-        if (dynamic) {
-          const keys = Object.keys(value)
-          const members = keys.filter((x) => !properties.includes(x))
-
-          for (const member of members) {
-            if (member[0] != "@") {
-              this.writeString(member)
-              this.writeData(value[member])
-            }
-          }
-
-          this.writeString("")
-        }
-      } else {
-        switch (name) {
-          case "flex.messaging.io.ArrayCollection":
-            this.writeData(value.source)
-            break
-          default:
-            throw new Error("Unsupported externalizable")
-        }
-      }
+      this.writeObject(value)
     } else {
       throw new TypeError(`Unknown type: ${typeof value}`)
     }
   }
 
   /**
+   * Reads an array
+   * Separate function as it's big
+   * @returns {Array}
+   */
+  readArray() {
+    const index = this.readUnsignedInt29()
+
+    if (index & 1) {
+      let key = this.readString()
+
+      if (key === "") {
+        const value = []
+
+        this.objects[Object.keys(this.objects).length] = value
+
+        for (let i = 0; i < index >> 1; i++) {
+          value.push(this.readData())
+        }
+
+        return value
+      }
+
+      let value = {}
+
+      this.objects[Object.keys(this.objects).length] = value
+
+      while (key !== "") {
+        value[key] = this.readData()
+        key = this.readString()
+      }
+
+      for (let i = 0; i < index >> 1; i++) {
+        value[i] = this.readData()
+      }
+
+      return value
+    } else {
+      if (Object.keys(this.objects).includes(String(index >> 1))) {
+        return this.objects[index >> 1]
+      }
+    }
+  }
+
+  /**
+   * Reads an object
+   * Separate function as it's big
+   * @returns {Object}
+   */
+  readObject() {
+    const index = this.readUnsignedInt29()
+
+    if (index & (1 << 0)) {
+      const value = {}
+
+      this.objects[Object.keys(this.objects).length] = value
+
+      if (index & (1 << 1)) {
+        const traits = {}
+
+        this.traits[Object.keys(this.traits).length] = traits
+
+        const name = this.readString()
+
+        traits["@name"] = name
+        traits["@externalizable"] = !!(index & (1 << 2))
+        traits["@dynamic"] = !!(index & (1 << 3))
+        traits["@properties"] = []
+
+        for (let i = 0; i < index >> 4; i++) {
+          traits["@properties"].push(this.readString())
+        }
+
+        assignIn(value, traits)
+      } else {
+        if (Object.keys(this.traits).includes(String(index >> 2))) {
+          assignIn(value, this.traits[index >> 2])
+        }
+      }
+
+      if (!value["@externalizable"]) {
+        for (const property of value["@properties"]) {
+          if (property[0] !== "@") {
+            value[property] = this.readData()
+          }
+        }
+
+        if (value["@dynamic"]) {
+          for (let property = this.readString(); property !== ""; property = this.readString()) {
+            if (property[0] !== "@") {
+              value[property] = this.readData()
+            }
+          }
+        }
+      } else {
+        switch (value["@name"]) {
+          case "flex.messaging.io.ArrayCollection":
+            value.source = this.readData()
+            break
+          default:
+            throw new Error("Unsupported externalizable")
+        }
+      }
+
+      const removeSpecs = true
+
+      if (removeSpecs) {
+        delete value["@name"]
+        delete value["@externalizable"]
+        delete value["@dynamic"]
+        delete value["@properties"]
+      }
+
+      return value
+    } else {
+      if (Object.keys(this.objects).includes(String(index >> 1))) {
+        return this.objects[index >> 1]
+      }
+    }
+  }
+
+  /**
+   * Reads a string
+   * Separate function as it's used multiple times
+   * @returns {String}
+   */
+  readString() {
+    const index = this.readUnsignedInt29()
+
+    if (index & 1) {
+      const value = this.ba.readUTFBytes(index >> 1)
+
+      if (value.length !== 0) {
+        this.strings[Object.keys(this.strings).length] = value
+      }
+
+      return value
+    } else {
+      if (Object.keys(this.strings).includes(String(index >> 1))) {
+        return this.strings[index >> 1]
+      }
+    }
+  }
+
+  /**
    * Reads an unsigned int29
+   * Separate function as it's used multiple times
+   * @returns {Number}
    */
   readUnsignedInt29() {
     let byte = this.ba.readUnsignedByte()
@@ -236,28 +405,8 @@ class AMF3 {
   }
 
   /**
-   * Reads a string
-   */
-  readString() {
-    const index = this.readUnsignedInt29()
-
-    if (index & 1) {
-      const value = this.ba.readUTFBytes(index >> 1)
-
-      if (value.length !== 0) {
-        this.strings[Object.keys(this.strings).length] = value
-      }
-
-      return value
-    } else {
-      if (Object.keys(this.strings).includes(String(index >> 1))) {
-        return this.strings[index >> 1]
-      }
-    }
-  }
-
-  /**
    * Deserializes data
+   * @returns {?}
    */
   readData() {
     const marker = this.ba.readByte()
@@ -293,112 +442,9 @@ class AMF3 {
     } else if (marker === 6 || marker === 7 || marker === 11) {
       return this.readString()
     } else if (marker === 9) {
-      const index = this.readUnsignedInt29()
-
-      if (index & 1) {
-        let key = this.readString()
-
-        if (key === "") {
-          const value = []
-
-          this.objects[Object.keys(this.objects).length] = value
-
-          for (let i = 0; i < index >> 1; i++) {
-            value.push(this.readData())
-          }
-
-          return value
-        }
-
-        let value = {}
-
-        this.objects[Object.keys(this.objects).length] = value
-
-        while (key !== "") {
-          value[key] = this.readData()
-          key = this.readString()
-        }
-
-        for (let i = 0; i < index >> 1; i++) {
-          value[i] = this.readData()
-        }
-
-        return value
-      } else {
-        if (Object.keys(this.objects).includes(String(index >> 1))) {
-          return this.objects[index >> 1]
-        }
-      }
+      return this.readArray()
     } else if (marker === 10) {
-      const index = this.readUnsignedInt29()
-
-      if (index & (1 << 0)) {
-        const value = {}
-
-        this.objects[Object.keys(this.objects).length] = value
-
-        if (index & (1 << 1)) {
-          const traits = {}
-
-          this.traits[Object.keys(this.traits).length] = traits
-
-          const name = this.readString()
-
-          traits["@name"] = name
-          traits["@externalizable"] = !!(index & (1 << 2))
-          traits["@dynamic"] = !!(index & (1 << 3))
-          traits["@properties"] = []
-
-          for (let i = 0; i < index >> 4; i++) {
-            traits["@properties"].push(this.readString())
-          }
-
-          assignIn(value, traits)
-        } else {
-          if (Object.keys(this.traits).includes(String(index >> 2))) {
-            assignIn(value, this.traits[index >> 2])
-          }
-        }
-
-        if (!value["@externalizable"]) {
-          for (const property of value["@properties"]) {
-            if (property[0] !== "@") {
-              value[property] = this.readData()
-            }
-          }
-
-          if (value["@dynamic"]) {
-            for (let property = this.readString(); property !== ""; property = this.readString()) {
-              if (property[0] !== "@") {
-                value[property] = this.readData()
-              }
-            }
-          }
-        } else {
-          switch (value["@name"]) {
-            case "flex.messaging.io.ArrayCollection":
-              value.source = this.readData()
-              break
-            default:
-              throw new Error("Unsupported externalizable")
-          }
-        }
-
-        const removeSpecs = true
-
-        if (removeSpecs) {
-          delete value["@name"]
-          delete value["@externalizable"]
-          delete value["@dynamic"]
-          delete value["@properties"]
-        }
-
-        return value
-      } else {
-        if (Object.keys(this.objects).includes(String(index >> 1))) {
-          return this.objects[index >> 1]
-        }
-      }
+      return this.readObject()
     } else {
       throw new TypeError(`Unknown marker: ${marker}`)
     }

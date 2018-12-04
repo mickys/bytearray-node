@@ -15,6 +15,98 @@ class AMF0 {
   }
 
   /**
+   * Writes an array
+   * Separate function as it's big
+   * @param {Array} value
+   */
+  writeArray(value) {
+    if (Object.keys(this.references).includes(value)) {
+      return this.writeReference(value)
+    }
+
+    this.references[value] = Object.keys(this.references).length
+
+    if (this.isStrict(value)) {
+      this.ba.writeByte(10)
+      this.ba.writeUnsignedInt(value.length)
+
+      for (const element of value) {
+        this.writeData(element)
+      }
+    } else {
+      this.ba.writeByte(8)
+      this.ba.writeUnsignedInt(value.length)
+
+      for (const key in value) {
+        this.writeString(key)
+        this.writeData(value[key])
+      }
+
+      this.ba.writeShort(0)
+      this.ba.writeByte(9)
+    }
+  }
+
+  /**
+   * Writes an object
+   * Separate function as it's big
+   * @param {Object} value
+   */
+  writeObject(value) {
+    if (Object.keys(this.references).includes(value)) {
+      return this.writeReference(value)
+    }
+
+    this.references[value] = Object.keys(this.references).length
+
+    if (value["@name"] !== undefined) {
+      this.ba.writeByte(16)
+      this.writeString(value["@name"])
+    } else {
+      this.ba.writeByte(3)
+    }
+
+    for (const key in value) {
+      if (key[0] !== "@") {
+        this.writeString(key)
+        this.writeData(value[key])
+      }
+    }
+
+    this.ba.writeShort(0)
+    this.ba.writeByte(9)
+  }
+
+  /**
+   * Writes a reference
+   * Separate function as it's used multiple times
+   * @param {Number} value
+   */
+  writeReference(value) {
+    const reference = this.references[value]
+
+    if (reference <= 0xffff) {
+      this.ba.writeByte(7)
+      this.ba.writeUnsignedShort(reference)
+    }
+  }
+
+  /**
+   * Writes a string
+   * Separate function as it's used multiple times
+   * @param {String} value
+   */
+  writeString(value) {
+    if (value.length <= 0xffff) {
+      return this.ba.writeUTF(value)
+    }
+
+    this.ba.writeByte(12)
+    this.ba.writeUnsignedInt(value.length)
+    this.ba.writeUTFBytes(value)
+  }
+
+  /**
    * Serializes data
    * @param {?} value
    */
@@ -36,61 +128,100 @@ class AMF0 {
       this.ba.writeByte(2)
       this.writeString(value)
     } else if (value instanceof Array) {
-      if (Object.keys(this.references).includes(value)) {
-        return this.writeReference(value)
-      }
-
-      this.references[value] = Object.keys(this.references).length
-
-      if (this.isStrict(value)) {
-        this.ba.writeByte(10)
-        this.ba.writeUnsignedInt(value.length)
-
-        for (const element of value) {
-          this.writeData(element)
-        }
-      } else {
-        this.ba.writeByte(8)
-        this.ba.writeUnsignedInt(value.length)
-
-        for (const key in value) {
-          this.writeString(key)
-          this.writeData(value[key])
-        }
-
-        this.ba.writeShort(0)
-        this.ba.writeByte(9)
-      }
+      this.writeArray(value)
     } else if (value instanceof Object) {
-      if (Object.keys(this.references).includes(value)) {
-        return this.writeReference(value)
-      }
-
-      this.references[value] = Object.keys(this.references).length
-
-      if (value["@name"] !== undefined) {
-        this.ba.writeByte(16)
-        this.writeString(value["@name"])
-      } else {
-        this.ba.writeByte(3)
-      }
-
-      for (const key in value) {
-        if (key[0] !== "@") {
-          this.writeString(key)
-          this.writeData(value[key])
-        }
-      }
-
-      this.ba.writeShort(0)
-      this.ba.writeByte(9)
+      this.writeObject(value)
     } else {
       throw new TypeError(`Unknown type: ${typeof value}`)
     }
   }
 
   /**
+   * Reads an array
+   * Separate function as it's big
+   * @returns {Array}
+   */
+  readArray() {
+    const value = []
+
+    this.references[Object.keys(this.references).length] = value
+
+    const length = this.ba.readUnsignedInt()
+
+    for (let i = 0; i < length; i++) {
+      value.push(this.readData())
+    }
+
+    return value
+  }
+
+  /**
+   * Reads an object
+   * Separate function as it's big
+   * @returns {Object}
+   */
+  readObject() {
+    const value = {}
+
+    this.references[Object.keys(this.references).length] = value
+
+    for (let key = this.ba.readUTF(); key !== ""; key = this.ba.readUTF()) {
+      if (key[0] !== "@") {
+        value[key] = this.readData()
+      }
+    }
+
+    if (this.ba.readByte() === 9) {
+      return value
+    }
+  }
+
+  /**
+   * Reads a typed object
+   * Separate function as it's big
+   * @returns {Object}
+   */
+  readTypedObject() {
+    const value = {}
+
+    this.references[Object.keys(this.references).length] = value
+
+    value["@name"] = this.ba.readUTF()
+
+    for (let key = this.ba.readUTF(); key !== ""; key = this.ba.readUTF()) {
+      if (key[0] !== "@") {
+        value[key] = this.readData()
+      }
+    }
+
+    if (this.ba.readByte() === 9) {
+      return value
+    }
+  }
+
+  /**
+   * Reads an ECMA array
+   * Separate function as it's big
+   * @returns {Array}
+   */
+  readECMAArray() {
+    const value = []
+    const length = this.ba.readUnsignedInt()
+    let name = this.ba.readUTF()
+
+    while (name.length > 0 && length !== 0) {
+      value[name] = this.readData()
+      name = this.ba.readUTF()
+    }
+
+    if (this.ba.readByte() === 9) {
+      return value
+    }
+  }
+
+  /**
    * Deserializes data
+   * @returns {?}
    */
   readData() {
     const marker = this.ba.readByte()
@@ -110,96 +241,18 @@ class AMF0 {
     } else if (marker === 12 || marker === 15) {
       return this.ba.readUTFBytes(this.ba.readUnsignedInt())
     } else if (marker === 10) {
-      const value = []
-
-      this.references[Object.keys(this.references).length] = value
-
-      const length = this.ba.readUnsignedInt()
-
-      for (let i = 0; i < length; i++) {
-        value.push(this.readData())
-      }
-
-      return value
+      return this.readArray()
     } else if (marker === 3) {
-      const value = {}
-
-      this.references[Object.keys(this.references).length] = value
-
-      for (let key = this.ba.readUTF(); key !== ""; key = this.ba.readUTF()) {
-        if (key[0] !== "@") {
-          value[key] = this.readData()
-        }
-      }
-
-      if (this.ba.readByte() === 9) {
-        return value
-      }
+      return this.readObject()
     } else if (marker === 16) {
-      const value = {}
-
-      this.references[Object.keys(this.references).length] = value
-
-      value["@name"] = this.ba.readUTF()
-
-      for (let key = this.ba.readUTF(); key !== ""; key = this.ba.readUTF()) {
-        if (key[0] !== "@") {
-          value[key] = this.readData()
-        }
-      }
-
-      if (this.ba.readByte() === 9) {
-        return value
-      }
+      return this.readTypedObject()
     } else if (marker === 7) {
       return this.references[this.ba.readUnsignedShort()]
     } else if (marker === 8) {
-      const value = []
-      const length = this.ba.readUnsignedInt()
-      let name = this.ba.readUTF()
-
-      while (name.length > 0 && length !== 0) {
-        value[name] = this.readData()
-        name = this.ba.readUTF()
-      }
-
-      if (this.ba.readByte() === 9) {
-        return value
-      }
-    } else if (marker === 17) {
-      this.ba.objectEncoding = 3
-
-      return this.ba.readObject()
+      return this.readECMAArray()
     } else {
       throw new TypeError(`Unknown marker: ${marker}`)
     }
-  }
-
-  /**
-   * Writes a reference
-   * @param {Number} value
-   */
-  writeReference(value) {
-    const reference = this.references[value]
-
-    if (reference <= 0xffff) {
-      this.ba.writeByte(7)
-      this.ba.writeUnsignedShort(reference)
-    }
-  }
-
-  /**
-   * Writes a string
-   * @param {String} value
-   */
-  writeString(value) {
-    if (value.length <= 0xffff) {
-      return this.ba.writeUTF(value)
-    }
-
-    this.ba.writeByte(12)
-    this.ba.writeUnsignedInt(value.length)
-    this.ba.writeUTFBytes(value)
   }
 }
 
