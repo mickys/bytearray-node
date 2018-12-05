@@ -3,7 +3,7 @@
 class AMF0 {
   constructor(ba) {
     this.ba = ba
-    this.references = []
+    this.references = new Map()
   }
 
   /**
@@ -20,11 +20,11 @@ class AMF0 {
    * @param {Array} value
    */
   writeArray(value) {
-    if (Object.keys(this.references).includes(value)) {
+    if (this.references.has(value)) {
       return this.writeReference(value)
     }
 
-    this.references[value] = Object.keys(this.references).length
+    this.references.set(value, this.references.size)
 
     if (this.isStrict(value)) {
       this.ba.writeByte(10)
@@ -53,11 +53,11 @@ class AMF0 {
    * @param {Object} value
    */
   writeObject(value) {
-    if (Object.keys(this.references).includes(value)) {
+    if (this.references.has(value)) {
       return this.writeReference(value)
     }
 
-    this.references[value] = Object.keys(this.references).length
+    this.references.set(value, this.references.size)
 
     if (value["@name"] !== undefined) {
       this.ba.writeByte(16)
@@ -83,7 +83,7 @@ class AMF0 {
    * @param {Number} value
    */
   writeReference(value) {
-    const reference = this.references[value]
+    const reference = this.references.get(value)
 
     if (reference <= 0xffff) {
       this.ba.writeByte(7)
@@ -144,7 +144,7 @@ class AMF0 {
   readArray() {
     const value = []
 
-    this.references[Object.keys(this.references).length] = value
+    this.references.set(this.references.size, value)
 
     const length = this.ba.readUnsignedInt()
 
@@ -163,7 +163,7 @@ class AMF0 {
   readObject() {
     const value = {}
 
-    this.references[Object.keys(this.references).length] = value
+    this.references.set(this.references.size, value)
 
     for (let key = this.ba.readUTF(); key !== ""; key = this.ba.readUTF()) {
       if (key[0] !== "@") {
@@ -184,7 +184,7 @@ class AMF0 {
   readTypedObject() {
     const value = {}
 
-    this.references[Object.keys(this.references).length] = value
+    this.references.set(this.references.size, value)
 
     value["@name"] = this.ba.readUTF()
 
@@ -247,7 +247,7 @@ class AMF0 {
     } else if (marker === 16) {
       return this.readTypedObject()
     } else if (marker === 7) {
-      return this.references[this.ba.readUnsignedShort()]
+      return this.references.get(this.ba.readUnsignedShort())
     } else if (marker === 8) {
       return this.readECMAArray()
     } else {

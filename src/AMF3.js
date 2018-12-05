@@ -6,9 +6,9 @@ class AMF3 {
   constructor(ba) {
     this.ba = ba
 
-    this.strings = []
-    this.objects = []
-    this.traits = []
+    this.strings = new Map()
+    this.objects = new Map()
+    this.traits = new Map()
   }
 
   /**
@@ -53,11 +53,11 @@ class AMF3 {
   writeArray(value) {
     this.ba.writeByte(9)
 
-    if (Object.keys(this.objects).includes(value)) {
-      return this.writeUnsignedInt29((this.objects[value] << 1) | 0)
+    if (this.objects.has(value)) {
+      return this.writeUnsignedInt29((this.objects.get(value) << 1) | 0)
     }
 
-    this.objects[value] = Object.keys(this.objects).length
+    this.objects.set(value, this.objects.size)
 
     if (this.isDenseArray(value)) {
       this.writeUnsignedInt29((value.length << 1) | 1)
@@ -86,20 +86,19 @@ class AMF3 {
   writeObject(value) {
     this.ba.writeByte(10)
 
-    if (Object.keys(this.objects).includes(value)) {
-      return this.writeUnsignedInt29((this.objects[value] << 1) | 0)
+    if (this.objects.has(value)) {
+      return this.writeUnsignedInt29((this.objects.get(value) << 1) | 0)
     }
 
-    this.objects[value] = Object.keys(this.objects).length
+    this.objects.set(value, this.objects.size)
 
     const name = value["@name"] !== undefined ? value["@name"] : ""
     const dynamic = value["@dynamic"] !== undefined ? value["@dynamic"] : true
     const externalizable = value["@externalizable"] !== undefined ? value["@externalizable"] : false
     const properties = value["@properties"] !== undefined ? value["@properties"] : []
 
-    if (!Object.keys(this.traits).includes(name)) {
-      this.traits[name] = Object.keys(this.traits).length
-
+    if (!this.traits.has(name)) {
+      this.traits.set(name, this.traits.size)
       this.writeUnsignedInt29((properties.length << 4) | (dynamic << 3) | (externalizable << 2) | 3)
       this.writeString(name)
 
@@ -131,12 +130,10 @@ class AMF3 {
         this.writeString("")
       }
     } else {
-      switch (name) {
-        case "flex.messaging.io.ArrayCollection":
-          this.writeData(value.source)
-          break
-        default:
-          throw new Error("Unsupported externalizable")
+      if (name === "flex.messaging.io.ArrayCollection") {
+        this.writeData(value.source)
+      } else {
+        throw new Error("Unsupported externalizable")
       }
     }
   }
@@ -151,11 +148,11 @@ class AMF3 {
       return this.writeUnsignedInt29((0 << 1) | 1)
     }
 
-    if (Object.keys(this.strings).includes(value)) {
-      return this.writeUnsignedInt29((this.strings[value] << 1) | 0)
+    if (this.strings.has(value)) {
+      return this.writeUnsignedInt29((this.strings.get(value) << 1) | 0)
     }
 
-    this.strings[value] = Object.keys(this.strings).length
+    this.strings.set(value, this.strings.size)
     this.writeUnsignedInt29((value.length << 1) | 1)
     this.ba.writeUTFBytes(value)
   }
@@ -207,12 +204,11 @@ class AMF3 {
     } else if (value instanceof Date) {
       this.ba.writeByte(8)
 
-      if (Object.keys(this.objects).includes(value)) {
-        return this.writeUnsignedInt29((this.objects[value] << 1) | 0)
+      if (this.objects.has(value)) {
+        return this.writeUnsignedInt29((this.objects.get(value) << 1) | 0)
       }
 
-      this.objects[value] = Object.keys(this.objects).length
-
+      this.objects.set(value, this.objects.size)
       this.writeUnsignedInt29((0 << 1) | 1)
       this.ba.writeDouble(value.getTime())
     } else if (typeof value === "string") {
@@ -241,7 +237,7 @@ class AMF3 {
       if (key === "") {
         const value = []
 
-        this.objects[Object.keys(this.objects).length] = value
+        this.objects.set(this.objects.size, value)
 
         for (let i = 0; i < index >> 1; i++) {
           value.push(this.readData())
@@ -252,7 +248,7 @@ class AMF3 {
 
       let value = {}
 
-      this.objects[Object.keys(this.objects).length] = value
+      this.objects.set(this.objects.size, value)
 
       while (key !== "") {
         value[key] = this.readData()
@@ -265,8 +261,8 @@ class AMF3 {
 
       return value
     } else {
-      if (Object.keys(this.objects).includes(String(index >> 1))) {
-        return this.objects[index >> 1]
+      if (this.objects.has(index >> 1)) {
+        return this.objects.get(index >> 1)
       }
     }
   }
@@ -282,12 +278,12 @@ class AMF3 {
     if (index & (1 << 0)) {
       const value = {}
 
-      this.objects[Object.keys(this.objects).length] = value
+      this.objects.set(this.objects.size, value)
 
       if (index & (1 << 1)) {
         const traits = {}
 
-        this.traits[Object.keys(this.traits).length] = traits
+        this.traits.set(this.traits.size, traits)
 
         const name = this.readString()
 
@@ -302,8 +298,8 @@ class AMF3 {
 
         assignIn(value, traits)
       } else {
-        if (Object.keys(this.traits).includes(String(index >> 2))) {
-          assignIn(value, this.traits[index >> 2])
+        if (this.traits.has(index >> 2)) {
+          assignIn(value, this.traits.get(index >> 2))
         }
       }
 
@@ -322,12 +318,10 @@ class AMF3 {
           }
         }
       } else {
-        switch (value["@name"]) {
-          case "flex.messaging.io.ArrayCollection":
-            value.source = this.readData()
-            break
-          default:
-            throw new Error("Unsupported externalizable")
+        if (value["@name"] === "flex.messaging.io.ArrayCollection") {
+          value.source = this.readData()
+        } else {
+          throw new Error("Unsupported externalizable")
         }
       }
 
@@ -342,8 +336,8 @@ class AMF3 {
 
       return value
     } else {
-      if (Object.keys(this.objects).includes(String(index >> 1))) {
-        return this.objects[index >> 1]
+      if (this.objects.has(index >> 1)) {
+        return this.objects.get(index >> 1)
       }
     }
   }
@@ -360,13 +354,13 @@ class AMF3 {
       const value = this.ba.readUTFBytes(index >> 1)
 
       if (value.length !== 0) {
-        this.strings[Object.keys(this.strings).length] = value
+        this.strings.set(this.strings.size, value)
       }
 
       return value
     } else {
-      if (Object.keys(this.strings).includes(String(index >> 1))) {
-        return this.strings[index >> 1]
+      if (this.strings.has(index >> 1)) {
+        return this.strings.get(index >> 1)
       }
     }
   }
@@ -431,12 +425,12 @@ class AMF3 {
       if (index & 1) {
         const value = new Date(this.ba.readDouble())
 
-        this.objects[Object.keys(this.objects).length] = value
+        this.objects.set(this.objects.size, value)
 
         return value.toString()
       } else {
-        if (Object.keys(this.objects).includes(String(index >> 1))) {
-          return this.objects[index >> 1]
+        if (this.objects.has(index >> 1)) {
+          return this.objects.get(index >> 1)
         }
       }
     } else if (marker === 6 || marker === 7 || marker === 11) {
