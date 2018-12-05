@@ -58,19 +58,11 @@ class AMF0 {
     }
 
     this.references.set(value, this.references.size)
-
-    if (value["@name"] !== undefined) {
-      this.ba.writeByte(16)
-      this.writeString(value["@name"])
-    } else {
-      this.ba.writeByte(3)
-    }
+    this.ba.writeByte(3)
 
     for (const key in value) {
-      if (key[0] !== "@") {
-        this.writeString(key)
-        this.writeData(value[key])
-      }
+      this.writeString(key)
+      this.writeData(value[key])
     }
 
     this.ba.writeShort(0)
@@ -166,32 +158,7 @@ class AMF0 {
     this.references.set(this.references.size, value)
 
     for (let key = this.ba.readUTF(); key !== ""; key = this.ba.readUTF()) {
-      if (key[0] !== "@") {
-        value[key] = this.readData()
-      }
-    }
-
-    if (this.ba.readByte() === 9) {
-      return value
-    }
-  }
-
-  /**
-   * Reads a typed object
-   * Separate function as it's big
-   * @returns {Object}
-   */
-  readTypedObject() {
-    const value = {}
-
-    this.references.set(this.references.size, value)
-
-    value["@name"] = this.ba.readUTF()
-
-    for (let key = this.ba.readUTF(); key !== ""; key = this.ba.readUTF()) {
-      if (key[0] !== "@") {
-        value[key] = this.readData()
-      }
+      value[key] = this.readData()
     }
 
     if (this.ba.readByte() === 9) {
@@ -244,8 +211,6 @@ class AMF0 {
       return this.readArray()
     } else if (marker === 3) {
       return this.readObject()
-    } else if (marker === 16) {
-      return this.readTypedObject()
     } else if (marker === 7) {
       return this.references.get(this.ba.readUnsignedShort())
     } else if (marker === 8) {
