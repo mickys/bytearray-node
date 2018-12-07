@@ -106,7 +106,7 @@ class AMF3 {
         this.writeString(property)
       }
     } else {
-      this.writeUnsignedInt29((this.traits[name] << 2) | 1)
+      this.writeUnsignedInt29((this.traits.get(name) << 2) | 1)
     }
 
     if (!externalizable) {
