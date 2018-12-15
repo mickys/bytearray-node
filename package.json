@@ -1,6 +1,6 @@
 {
   "name": "bytearray-node",
-  "version": "1.3.5",
+  "version": "1.3.6",
   "description": "Pure Buffer implementation of the AS3 ByteArray",
   "main": "src/ByteArray.js",
   "homepage": "https://github.com/Zaseth/bytearray-node",
@@ -24,7 +24,6 @@
     "Binary"
   ],
   "dependencies": {
-    "lodash.assignin": "^4.2.0",
     "tape": "^4.9.1"
   },
   "author": "Zaseth",

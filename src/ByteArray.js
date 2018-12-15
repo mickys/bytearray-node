@@ -1,8 +1,5 @@
 "use strict"
 
-const AMF3 = require("./AMF3")
-const AMF0 = require("./AMF0")
-
 const DEFAULT_SIZE = 2048
 
 class ByteArray {
@@ -69,7 +66,6 @@ class ByteArray {
   scaleBuffer(length) {
     const oldBuffer = this.buffer
 
-    // DEFAULT_SIZE avoids memory leaks
     this.buffer = Buffer.alloc(this.length + DEFAULT_SIZE + length)
 
     oldBuffer.copy(this.buffer)
@@ -150,25 +146,6 @@ class ByteArray {
   }
 
   /**
-   * Reads a half precision float
-   * @returns {Number}
-   */
-  readHalfFloat() {
-    const value = this.readUnsignedShort()
-    const sign = (value & 0x8000) >> 15
-    const exponent = (value & 0x7c00) >> 10
-    const fraction = value & 0x03ff
-
-    if (exponent === 0) {
-      return (sign ? -1 : 1) * Math.pow(2, -14) * (fraction / Math.pow(2, 10))
-    } else if (exponent === 0x1f) {
-      return fraction ? NaN : (sign ? -1 : 1) * Infinity
-    }
-
-    return (sign ? -1 : 1) * Math.pow(2, exponent - 15) * (1 + fraction / Math.pow(2, 10))
-  }
-
-  /**
    * Reads a signed int
    * @returns {Number}
    */
@@ -194,14 +171,6 @@ class ByteArray {
     if (Buffer.isEncoding(charSet)) {
       return this.buffer.toString(charSet, position, position + length)
     }
-  }
-
-  /**
-   * Reads an object
-   * @returns {Object}
-   */
-  readObject() {
-    return this.objectEncoding === 3 ? new AMF3(this).readData() : new AMF0(this).readData()
   }
 
   /**
@@ -374,50 +343,6 @@ class ByteArray {
   }
 
   /**
-   * Writes a half precision float
-   * @param {Number} value
-   */
-  writeHalfFloat(value) {
-    if (!this.canWrite(2)) {
-      this.scaleBuffer(2)
-    }
-
-    const floatView = new Float32Array(1)
-    const int32View = new Int32Array(floatView.buffer)
-
-    floatView[0] = value
-
-    const x = int32View[0]
-
-    let bits = (x >> 16) & 0x8000
-    let mantissa = (x >> 12) & 0x07ff
-    let exponent = (x >> 23) & 0xff
-
-    if (exponent < 103) {
-      return this.writeUnsignedShort(bits)
-    }
-
-    if (exponent > 142) {
-      bits |= 0x7c00
-      bits |= (exponent == 255 ? 0 : 1) && x & 0x007fffff
-
-      return this.writeUnsignedShort(bits)
-    }
-
-    if (exponent < 113) {
-      mantissa |= 0x0800
-      bits |= (mantissa >> (114 - exponent)) + ((mantissa >> (113 - exponent)) & 1)
-
-      return this.writeUnsignedShort(bits)
-    }
-
-    bits |= ((exponent - 112) << 10) | (mantissa >> 1)
-    bits += mantissa & 1
-
-    this.writeUnsignedShort(bits)
-  }
-
-  /**
    * Writes a signed int
    * @param {Number} value
    */
@@ -448,14 +373,6 @@ class ByteArray {
 
       this.writePosition += length
     }
-  }
-
-  /**
-   * Writes an object
-   * @param {Object} value
-   */
-  writeObject(value) {
-    this.objectEncoding === 3 ? new AMF3(this).writeData(value) : new AMF0(this).writeData(value)
   }
 
   /**
