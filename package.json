@@ -1,6 +1,6 @@
 {
   "name": "bytearray-node",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Pure Buffer implementation of the AS3 ByteArray",
   "main": "src/index.js",
   "homepage": "https://github.com/Zaseth/bytearray-node",
@@ -24,7 +24,7 @@
     "Binary"
   ],
   "devDependencies": {
-    "tape": "^4.9.2"
+    "tape": "^4.10.0"
   },
   "author": "Zaseth",
   "license": "MIT"

@@ -170,16 +170,17 @@ it("Supports BE/LE", (tape) => {
   const ba = new ByteArray()
 
   ba.endian = false // LE
-  ba.writeUTF("Foo")
+  ba.writeShort(1)
   ba.endian = true // BE
-  ba.writeUTF("Bar")
+  ba.writeShort(2)
 
   ba.position = 0
 
   ba.endian = false
-  tape.equal(ba.readUTF(), "Foo")
+  tape.equal(ba.readShort(), 1)
   ba.endian = true
-  tape.equal(ba.readUTF(), "Bar")
+  tape.equal(ba.readShort(), 2)
+  tape.equal(ba.position, 4)
 
   tape.end()
 })
