@@ -50,7 +50,7 @@ class ByteArray {
         this.position = this.length
       } else {
         this.expand(value)
-        this.position = value
+        this.position = this.length
       }
     }
   }
