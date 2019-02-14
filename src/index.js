@@ -47,11 +47,11 @@ class ByteArray {
     } else if (value !== this.length) {
       if (value < this.length) {
         this.buffer = this.buffer.slice(0, value)
-        this.position = this.length
       } else {
         this.expand(value)
-        this.position = this.length
       }
+
+      this.position = this.length
     }
   }
 
@@ -80,13 +80,13 @@ class ByteArray {
 
     if (algorithm === "zlib") {
       this.buffer = zlib.deflateSync(this.buffer, { level: 9 })
-      this.position = this.length
     } else if (algorithm === "deflate") {
       this.buffer = zlib.deflateRawSync(this.buffer)
-      this.position = this.length
     } else {
       throw new Error(`Invalid compression algorithm: ${algorithm}`)
     }
+
+    this.position = this.length
   }
 
   /**
