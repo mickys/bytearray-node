@@ -278,13 +278,13 @@ class ByteArray {
 
     if (algorithm === "zlib") {
       this.buffer = zlib.inflateSync(this.buffer, { level: 9 })
-      this.position = 0
     } else if (algorithm === "deflate") {
       this.buffer = zlib.inflateRawSync(this.buffer)
-      this.position = 0
     } else {
       throw new Error(`Invalid compression algorithm: ${algorithm}`)
     }
+
+    this.position = 0
   }
 
   /**
