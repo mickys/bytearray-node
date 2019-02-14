@@ -8,7 +8,6 @@ it("Can write/read a byte", (tape) => {
 
   ba.writeByte(1)
   ba.writeUnsignedByte(2)
-
   ba.position = 0
 
   tape.equal(ba.readByte(), 1)
@@ -23,7 +22,6 @@ it("Can write/read a boolean", (tape) => {
 
   ba.writeBoolean(true)
   ba.writeBoolean(false)
-
   ba.position = 0
 
   tape.equal(ba.readBoolean(), true)
@@ -39,11 +37,12 @@ it("Can write/read bytes", (tape) => {
   ba.writeByte(1)
   ba.writeByte(2)
   ba.writeByte(3)
+
   tape.equal(ba.position, 3)
 
   const rb = new ByteArray()
-  rb.writeBytes(ba)
 
+  rb.writeBytes(ba)
   rb.position = 0
 
   tape.equal(rb.readByte(), 1)
@@ -72,7 +71,6 @@ it("Can write/read a short", (tape) => {
 
   ba.writeShort(1)
   ba.writeUnsignedShort(2)
-
   ba.position = 0
 
   tape.equal(ba.readShort(), 1)
@@ -87,7 +85,6 @@ it("Can write/read an int", (tape) => {
 
   ba.writeInt(1)
   ba.writeUnsignedInt(2)
-
   ba.position = 0
 
   tape.equal(ba.readInt(), 1)
@@ -102,7 +99,6 @@ it("Can write/read a float/double", (tape) => {
 
   ba.writeFloat(1.123)
   ba.writeDouble(2.456)
-
   ba.position = 0
 
   tape.equal(Math.round(ba.readFloat() * 1000) / 1000, 1.123)
@@ -118,7 +114,6 @@ it("Can write/read a string", (tape) => {
   ba.writeUTF("Hello World!")
   ba.writeUTFBytes("Hello")
   ba.writeMultiByte("Foo", "ascii")
-
   ba.position = 0
 
   tape.equal(ba.readUTF(), "Hello World!")
@@ -135,8 +130,8 @@ it("Can compress/uncompress the buffer", (tape) => {
   ba.writeUTF("Hello World!")
   ba.writeByte(1)
   ba.writeByte(2)
-
   tape.equal(ba.position, 16)
+
   ba.deflate()
   tape.equal(ba.position, 18)
 
@@ -149,7 +144,6 @@ it("Can compress/uncompress the buffer", (tape) => {
 
   ba.clear()
   tape.equal(ba.position, 0)
-
   ba.writeUTF("Hello World!")
   tape.equal(ba.position, 14)
 
@@ -173,7 +167,6 @@ it("Supports BE/LE", (tape) => {
   ba.writeShort(1)
   ba.endian = true // BE
   ba.writeShort(2)
-
   ba.position = 0
 
   ba.endian = false
@@ -189,7 +182,6 @@ it("Supports bytesAvailable", (tape) => {
   const ba = new ByteArray()
 
   ba.writeUTFBytes("Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Vivamus etc.")
-
   ba.position = 0
 
   while (ba.bytesAvailable > 0 && ba.readUTFBytes(1) !== "a") { }
@@ -211,6 +203,7 @@ it("Supports starting buffers in the constructor", (tape) => {
   tape.equal(ba.position, 3)
 
   const buffer = Buffer.alloc(3)
+
   buffer.writeInt8(1, 0)
   buffer.writeInt8(2, 1)
   buffer.writeInt8(3, 2)
@@ -222,6 +215,31 @@ it("Supports starting buffers in the constructor", (tape) => {
   tape.equal(ba2.readByte(), 3)
   tape.equal(ba2.position, 3)
 
+
+  tape.end()
+})
+
+it("Supports a while loop using bytesAvailable", (tape) => {
+  const buffer = Buffer.alloc(6)
+
+  buffer.writeInt8(69, 0)
+  buffer.writeInt8("F".charCodeAt(), 1)
+  buffer.writeInt8(69, 2)
+  buffer.writeInt8("O".charCodeAt(), 3)
+  buffer.writeInt8(69, 4)
+  buffer.writeInt8("O".charCodeAt(), 5)
+
+  const ba = new ByteArray(buffer)
+  let str = ""
+
+  while (ba.bytesAvailable > 0) {
+    if (ba.readByte() === 69) {
+      str += ba.readUTFBytes(1)
+    }
+  }
+
+  tape.equal(str, "FOO")
+  tape.equal(ba.position, 6)
 
   tape.end()
 })
