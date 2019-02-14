@@ -3,12 +3,16 @@
 const zlib = require("zlib")
 
 class ByteArray {
-  constructor() {
+  /**
+   * Initialize a new ByteArray
+   * @param {Buffer|Array} buffer
+   */
+  constructor(buffer) {
     /**
      * Holds the data
      * @type {Buffer}
      */
-    this.buffer = Buffer.alloc(0)
+    this.buffer = Buffer.isBuffer(buffer) ? buffer : Array.isArray(buffer) ? Buffer.from(buffer) : Buffer.alloc(0)
     /**
      * The current position
      * @type {Number}
@@ -19,6 +23,11 @@ class ByteArray {
      * @type {Boolean}
      */
     this.endian = true
+    /**
+     * The compression level for ZLIB
+     * @type {Number}
+     */
+    this.compressionLevel = 9
   }
 
   /**
@@ -79,7 +88,11 @@ class ByteArray {
     algorithm = algorithm.toLowerCase()
 
     if (algorithm === "zlib") {
-      this.buffer = zlib.deflateSync(this.buffer, { level: 9 })
+      if (this.compressionLevel < -1 || this.compressionLevel > 9) {
+        throw new Error(`Out of range compression level: ${this.compressionLevel}`)
+      }
+
+      this.buffer = zlib.deflateSync(this.buffer, { level: this.compressionLevel })
     } else if (algorithm === "deflate") {
       this.buffer = zlib.deflateRawSync(this.buffer)
     } else {
@@ -178,10 +191,6 @@ class ByteArray {
    * @returns {String}
    */
   readMultiByte(length, charSet = "utf8") {
-    if (length + this.position > this.length) {
-      throw new RangeError("There is not sufficient data available to read")
-    }
-
     const position = this.position
     this.position += length
 
@@ -277,7 +286,11 @@ class ByteArray {
     algorithm = algorithm.toLowerCase()
 
     if (algorithm === "zlib") {
-      this.buffer = zlib.inflateSync(this.buffer, { level: 9 })
+      if (this.compressionLevel < -1 || this.compressionLevel > 9) {
+        throw new Error(`Out of range compression level: ${this.compressionLevel}`)
+      }
+
+      this.buffer = zlib.inflateSync(this.buffer, { level: this.compressionLevel })
     } else if (algorithm === "deflate") {
       this.buffer = zlib.inflateRawSync(this.buffer)
     } else {

@@ -201,3 +201,27 @@ it("Supports bytesAvailable", (tape) => {
 
   tape.end()
 })
+
+it("Supports starting buffers in the constructor", (tape) => {
+  const ba = new ByteArray([1, 2, 3])
+
+  tape.equal(ba.readByte(), 1)
+  tape.equal(ba.readByte(), 2)
+  tape.equal(ba.readByte(), 3)
+  tape.equal(ba.position, 3)
+
+  const buffer = Buffer.alloc(3)
+  buffer.writeInt8(1, 0)
+  buffer.writeInt8(2, 1)
+  buffer.writeInt8(3, 2)
+
+  const ba2 = new ByteArray(buffer)
+
+  tape.equal(ba2.readByte(), 1)
+  tape.equal(ba2.readByte(), 2)
+  tape.equal(ba2.readByte(), 3)
+  tape.equal(ba2.position, 3)
+
+
+  tape.end()
+})
