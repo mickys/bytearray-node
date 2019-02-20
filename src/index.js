@@ -1,6 +1,7 @@
 "use strict"
 
 const zlib = require("zlib")
+const AMF0 = require("./AMF0")
 
 class ByteArray {
   /**
@@ -70,6 +71,19 @@ class ByteArray {
    */
   get bytesAvailable() {
     return this.length - this.position
+  }
+
+  /**
+   * Registers a class alias
+   * @param {String} aliasName
+   * @param {Class} classObject
+   */
+  registerClassAlias(aliasName, classObject) {
+    if (typeof classObject !== "function") {
+      throw new TypeError("Registering a class alias must contain a function")
+    }
+
+    AMF0.registerClassAlias(aliasName.toString().toLowerCase(), classObject)
   }
 
   /**
@@ -199,6 +213,15 @@ class ByteArray {
     } else {
       throw new Error(`Invalid character set: ${charSet}`)
     }
+  }
+
+  /**
+   * Reads an object from the buffer, encoded in AMF serialized format
+   * @returns {*}
+   */
+  readObject() {
+    this.endian = true
+    return AMF0.deserializeData(this)
   }
 
   /**
@@ -382,6 +405,15 @@ class ByteArray {
     } else {
       throw new Error(`Invalid character set: ${charSet}`)
     }
+  }
+
+  /**
+   * Writes an object into the buffer in AMF serialized format
+   * @param {*} value
+   */
+  writeObject(value) {
+    this.endian = true
+    AMF0.serializeData(this, value)
   }
 
   /**
