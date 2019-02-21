@@ -79,7 +79,7 @@ class ByteArray {
    * @param {Class} classObject
    */
   registerClassAlias(aliasName, classObject) {
-    AMF0.registerClassAlias(aliasName.toString().toLowerCase(), classObject)
+    AMF0.registerClassAlias(aliasName.toString(), classObject)
   }
 
   /**
@@ -294,7 +294,11 @@ class ByteArray {
    * @returns {String}
    */
   toString(charSet = "utf8", offset = 0, length = this.length) {
-    return this.buffer.toString(charSet, offset, length)
+    if (Buffer.isEncoding(charSet)) {
+      return this.buffer.toString(charSet, offset, length)
+    } else {
+      throw new Error(`Invalid character set: ${charSet}`)
+    }
   }
 
   /**
