@@ -41,36 +41,36 @@ First, in Actionscript 3:
 ```actionscript
 // Person.as
 package {
-	public class Person {
-		public var name:String;
-		public var age:Number;
+  public class Person {
+    public var name:String;
+    public var age:Number;
 
-		public function Person(name:String, age:Number) {
-		    this.name = name;
-		    this.age = age;
-		}
-	}
+    public function Person(name:String, age:Number) {
+      this.name = name;
+      this.age = age;
+    }
+  }
 }
 
 // Main.as
 package {
-	import flash.utils.ByteArray;
-	import flash.net.registerClassAlias;
+  import flash.utils.ByteArray;
+  import flash.net.registerClassAlias;
 
-	import flash.display.Sprite;
-	import flash.events.Event;
+  import flash.display.Sprite;
+  import flash.events.Event;
 
-	import Person;
+  import Person;
 
-	public class Main extends Sprite {
-		public function Main() {
-			registerClassAlias("com.person", Person);
+  public class Main extends Sprite {
+    public function Main() {
+      registerClassAlias("com.person", Person);
 
-			var ba:ByteArray = new ByteArray();
-			ba.objectEncoding = 0;
-			ba.writeObject(new Person("Mike", 30));
-		}
-	}
+      var ba:ByteArray = new ByteArray();
+      ba.objectEncoding = 0;
+      ba.writeObject(new Person("Mike", 30));
+    }
+  }
 }
 ```
 
