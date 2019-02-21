@@ -79,10 +79,6 @@ class ByteArray {
    * @param {Class} classObject
    */
   registerClassAlias(aliasName, classObject) {
-    if (typeof classObject !== "function") {
-      throw new TypeError("Registering a class alias must contain a function")
-    }
-
     AMF0.registerClassAlias(aliasName.toString().toLowerCase(), classObject)
   }
 
