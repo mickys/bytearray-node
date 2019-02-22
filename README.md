@@ -1,6 +1,6 @@
 # ByteArray-node
 
-This is a Node.js implementation of the Actionscript 3 ByteArray, without any dependencies!
+This is a Node.js implementation of the Actionscript 3 ByteArray, supporting AMF0.
 
 # Installation
 
@@ -20,61 +20,22 @@ This is a Node.js implementation of the Actionscript 3 ByteArray, without any de
 ### Extra supported methods
 - writeUnsignedByte
 - writeUnsignedShort
+- writeUnsignedInt29
+- readUnsignedInt29
 
 ### Extra supported properties
-- You can use registerClassAlias in the ByteArray class
-- The endian is defined by a boolean (Default = true, true = BE, false = LE)
-- compressionLevel (Default = 9, Range= -1/9, ZLIB only)
-- writeUTF/readUTF uses an unsigned short to support longer strings
-- You can initialize a new ByteArray with a buffer or array
+- More character sets for writeMultiByte/readMultiByte thanks to **iconv-lite**
+- You can use the uint29 methods by constructing a new ByteArray
+- You can use registerClassAlias by constructing a new ByteArray
+- The endian is defined as a boolean (Default = true, true = BE, false = LE)
+- compressionLevel (Default = 9, Range= -1/9, **ZLIB only**)
+- You can construct a new ByteArray with a buffer or array
 
-# Examples and tests
+# Examples
 
-See `/test/`
-
-# AMF0 and registerClassAlias
+`For more examples, see /test/`
 
 This library fully supports AMF0 and class aliases. Below is a simple illustration.
-
-First, in Actionscript 3:
-
-```actionscript
-// Person.as
-package {
-  public class Person {
-    public var name:String;
-    public var age:Number;
-
-    public function Person(name:String, age:Number) {
-      this.name = name;
-      this.age = age;
-    }
-  }
-}
-
-// Main.as
-package {
-  import flash.utils.ByteArray;
-  import flash.net.registerClassAlias;
-
-  import flash.display.Sprite;
-  import flash.events.Event;
-
-  import Person;
-
-  public class Main extends Sprite {
-    public function Main() {
-      registerClassAlias("com.person", Person);
-
-      var ba:ByteArray = new ByteArray();
-      ba.objectEncoding = 0;
-      ba.writeObject(new Person("Mike", 30));
-    }
-  }
-}
-```
-
-To do this using this library, you can do the following:
 
 ```javascript
 // Person.js
@@ -82,6 +43,12 @@ module.exports = class Person {
   constructor(name, age) {
     this.name = name
     this.age = age
+  }
+
+  get mikeAge() {
+    if (this.name === "Mike") {
+      return this.age
+    }
   }
 }
 
@@ -94,5 +61,9 @@ const ba = new ByteArray()
 ba.registerClassAlias("com.person", Person)
 ba.writeObject(new Person("Mike", 30))
 ba.position = 0
-console.log(ba.readObject()) // Person { name: 'Mike', age: 30 }
+
+const person = ba.readObject() // Person { name: 'Mike', age: 30 }
+
+person instanceof Person // true
+person.mikeAge // 30
 ```

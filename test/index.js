@@ -94,6 +94,17 @@ it("Can write/read an int", (tape) => {
   tape.end()
 })
 
+it("Can write/read an unsigned int29", (tape) => {
+  const ba = new ByteArray()
+
+  ba.writeUnsignedInt29(1)
+  ba.position = 0
+
+  tape.equal(ba.readUnsignedInt29(), 1)
+
+  tape.end()
+})
+
 it("Can write/read a float/double", (tape) => {
   const ba = new ByteArray()
 
@@ -120,6 +131,13 @@ it("Can write/read a string", (tape) => {
   tape.equal(ba.readUTFBytes(5), "Hello")
   tape.equal(ba.readMultiByte(3, "ascii"), "Foo")
   tape.equal(ba.position, 22)
+
+  ba.clear()
+
+  ba.writeMultiByte("Hello", "win1251")
+  ba.position = 0
+
+  tape.equal(ba.readMultiByte(5, "win1251"), "Hello")
 
   tape.end()
 })

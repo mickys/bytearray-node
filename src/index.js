@@ -1,11 +1,12 @@
 "use strict"
 
 const zlib = require("zlib")
+const iconv = require("iconv-lite")
 const AMF0 = require("./AMF0")
 
 class ByteArray {
   /**
-   * Initialize a new ByteArray
+   * Construct a new ByteArray
    * @param {Buffer|Array} buffer
    */
   constructor(buffer) {
@@ -204,8 +205,8 @@ class ByteArray {
     const position = this.position
     this.position += length
 
-    if (Buffer.isEncoding(charSet)) {
-      return this.buffer.toString(charSet, position, position + length)
+    if (iconv.encodingExists(charSet)) {
+      return iconv.decode(this.buffer.slice(position, position + length), charSet)
     } else {
       throw new Error(`Invalid character set: ${charSet}`)
     }
@@ -279,6 +280,38 @@ class ByteArray {
   }
 
   /**
+   * Reads an unsigned int29
+   * @returns {Number}
+   */
+  readUnsignedInt29() {
+    let byte = this.readUnsignedByte()
+    let value
+
+    if (byte < 128) {
+      return byte
+    }
+
+    value = (byte & 0x7F) << 7
+    byte = this.readUnsignedByte()
+
+    if (byte < 128) {
+      return (value | byte)
+    }
+
+    value = (value | (byte & 0x7F)) << 7
+    byte = this.readUnsignedByte()
+
+    if (byte < 128) {
+      return (value | byte)
+    }
+
+    value = (value | (byte & 0x7F)) << 8
+    byte = this.readUnsignedByte()
+
+    return (value | byte)
+  }
+
+  /**
    * Converts the buffer to JSON
    * @returns {JSON}
    */
@@ -288,17 +321,10 @@ class ByteArray {
 
   /**
    * Converts the buffer to a string
-   * @param {String} charSet
-   * @param {Number} offset
-   * @param {Number} length
    * @returns {String}
    */
-  toString(charSet = "utf8", offset = 0, length = this.length) {
-    if (Buffer.isEncoding(charSet)) {
-      return this.buffer.toString(charSet, offset, length)
-    } else {
-      throw new Error(`Invalid character set: ${charSet}`)
-    }
+  toString() {
+    return this.buffer.toString("utf8")
   }
 
   /**
@@ -397,10 +423,9 @@ class ByteArray {
    */
   writeMultiByte(value, charSet = "utf8") {
     const length = Buffer.byteLength(value)
-    this.expand(length)
 
-    if (Buffer.isEncoding(charSet)) {
-      this.buffer.write(value, this.position, length, charSet)
+    if (iconv.encodingExists(charSet)) {
+      this.buffer = Buffer.concat([this.buffer, iconv.encode(value, charSet)])
       this.position += length
     } else {
       throw new Error(`Invalid character set: ${charSet}`)
@@ -478,6 +503,30 @@ class ByteArray {
    */
   writeUTFBytes(value) {
     this.writeMultiByte(value)
+  }
+
+  /**
+   * Writes an unsigned int29
+   * @param {Number} value
+   */
+  writeUnsignedInt29(value) {
+    if (value < 0x80) {
+      this.writeUnsignedByte(value)
+    } else if (value < 0x4000) {
+      this.writeUnsignedByte(((value >> 7) & 0x7F) | 0x80)
+      this.writeUnsignedByte(value & 0x7F)
+    } else if (value < 0x200000) {
+      this.writeUnsignedByte(((value >> 14) & 0x7F) | 0x80)
+      this.writeUnsignedByte(((value >> 7) & 0x7F) | 0x80)
+      this.writeUnsignedByte(value & 0x7F)
+    } else if (value < 0x40000000) {
+      this.writeUnsignedByte(((value >> 22) & 0x7F) | 0x80)
+      this.writeUnsignedByte(((value >> 15) & 0x7F) | 0x80)
+      this.writeUnsignedByte(((value >> 8) & 0x7F) | 0x80)
+      this.writeUnsignedByte(value & 0xFF)
+    } else {
+      throw new RangeError(`The value "${value}" is out of range`)
+    }
   }
 }
 
