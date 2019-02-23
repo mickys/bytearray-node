@@ -93,11 +93,9 @@ module.exports = class AMF0 {
         ba.writeShort(value.getTimezoneOffset())
       } else if (Object.keys(classAliases).length > 0 && func !== Number && func !== String) {
         let alias = ""
-        let found = false
 
         for (const aliasName in classAliases) {
           if (classAliases[aliasName].name.toString() === func.name.toString()) {
-            found = true
             alias = aliasName
           }
         }
@@ -111,7 +109,7 @@ module.exports = class AMF0 {
           references.push(value)
         }
 
-        if (found) {
+        if (alias.length > 0) {
           ba.writeByte(16)
           ba.writeUTF(alias)
         } else {

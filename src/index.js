@@ -34,10 +34,21 @@ class ByteArray {
   }
 
   /**
+   * Checks if the end of the file was encountered
+   * @param {Number} value - The amount of bytes that need to be available
+   */
+  checkEOF(value) {
+    if (this.bytesAvailable < value) {
+      throw new RangeError("End of file was encountered")
+    }
+  }
+
+  /**
    * Expands the buffer
    * @param {Number} value - The amount to expand the buffer
    */
   expand(value) {
+    // Todo: Check this!
     this.buffer = Buffer.concat([this.buffer, Buffer.alloc(value)])
   }
 
@@ -59,11 +70,14 @@ class ByteArray {
     } else if (value !== this.length) {
       if (value < this.length) {
         this.buffer = this.buffer.slice(0, value)
+        this.position = this.length
       } else {
-        this.expand(value)
+        if (this.position !== 0) {
+          this.expand(value - this.position)
+        } else {
+          this.expand(value)
+        }
       }
-
-      this.position = this.length
     }
   }
 
@@ -141,6 +155,7 @@ class ByteArray {
    * @returns {Number} - The value
    */
   readByte() {
+    this.checkEOF(1)
     return this.buffer.readInt8(this.position++)
   }
 
@@ -151,8 +166,14 @@ class ByteArray {
    * @param {Number} length - The number of bytes to read
    */
   readBytes(bytes, offset = 0, length = 0) {
+    const available = this.bytesAvailable
+
     if (length === 0) {
-      length = this.bytesAvailable
+      length = available
+    }
+
+    if (length > available) {
+      throw new RangeError("End of file was encountered")
     }
 
     if (bytes.length < offset + length) {
@@ -171,6 +192,7 @@ class ByteArray {
    * @returns {Number} - The value
    */
   readDouble() {
+    this.checkEOF(8)
     const value = this.endian ? this.buffer.readDoubleBE(this.position) : this.buffer.readDoubleLE(this.position)
     this.position += 8
     return value
@@ -181,6 +203,7 @@ class ByteArray {
    * @returns {Number} - The value
    */
   readFloat() {
+    this.checkEOF(4)
     const value = this.endian ? this.buffer.readFloatBE(this.position) : this.buffer.readFloatLE(this.position)
     this.position += 4
     return value
@@ -191,6 +214,7 @@ class ByteArray {
    * @returns {Number} - The value
    */
   readInt() {
+    this.checkEOF(4)
     const value = this.endian ? this.buffer.readInt32BE(this.position) : this.buffer.readInt32LE(this.position)
     this.position += 4
     return value
@@ -203,6 +227,7 @@ class ByteArray {
    * @returns {String} - The value
    */
   readMultiByte(length, charSet = "utf8") {
+    this.checkEOF(length)
     const position = this.position
     this.position += length
 
@@ -227,6 +252,7 @@ class ByteArray {
    * @returns {Number} - The value
    */
   readShort() {
+    this.checkEOF(2)
     const value = this.endian ? this.buffer.readInt16BE(this.position) : this.buffer.readInt16LE(this.position)
     this.position += 2
     return value
@@ -237,6 +263,7 @@ class ByteArray {
    * @returns {Number} - The value
    */
   readUnsignedByte() {
+    this.checkEOF(1)
     return this.buffer.readUInt8(this.position++)
   }
 
@@ -245,6 +272,7 @@ class ByteArray {
    * @returns {Number} - The value
    */
   readUnsignedInt() {
+    this.checkEOF(4)
     const value = this.endian ? this.buffer.readUInt32BE(this.position) : this.buffer.readUInt32LE(this.position)
     this.position += 4
     return value
@@ -255,6 +283,7 @@ class ByteArray {
    * @returns {Number} - The value
    */
   readUnsignedShort() {
+    this.checkEOF(2)
     const value = this.endian ? this.buffer.readUInt16BE(this.position) : this.buffer.readUInt16LE(this.position)
     this.position += 2
     return value
@@ -265,10 +294,7 @@ class ByteArray {
    * @returns {String} - The value
    */
   readUTF() {
-    const length = this.readUnsignedShort()
-    const position = this.position
-    this.position += length
-    return this.buffer.toString("utf8", position, position + length)
+    return this.readMultiByte(this.readUnsignedShort())
   }
 
   /**
