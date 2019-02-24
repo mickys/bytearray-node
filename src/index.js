@@ -35,7 +35,7 @@ class ByteArray {
 
   /**
    * Checks if the end of the file was encountered
-   * @param {Number} value - The amount of bytes that need to be available
+   * @param {Number} value - The amount of bytes that needs to be available
    */
   checkEOF(value) {
     if (this.bytesAvailable < value) {
@@ -44,12 +44,21 @@ class ByteArray {
   }
 
   /**
-   * Expands the buffer
+   * Expands the buffer when needed
    * @param {Number} value - The amount to expand the buffer
    */
   expand(value) {
-    // Todo: Check this!
-    this.buffer = Buffer.concat([this.buffer, Buffer.alloc(value)])
+    if (this.bytesAvailable >= value) {
+      return
+    }
+
+    const toExpand = Math.abs(this.bytesAvailable - value)
+
+    if (this.bytesAvailable + toExpand === value) {
+      this.buffer = Buffer.concat([this.buffer, Buffer.alloc(toExpand)])
+    } else {
+      this.buffer = Buffer.concat([this.buffer, Buffer.alloc(value)])
+    }
   }
 
   /**
@@ -92,7 +101,7 @@ class ByteArray {
   /**
    * Registers a class alias
    * @param {String} aliasName - The alias name to serialize
-   * @param {Class} classObject - The class to register as an alias
+   * @param {Function} classObject - The class to register as an alias
    */
   registerClassAlias(aliasName, classObject) {
     AMF0.registerClassAlias(aliasName.toString(), classObject)
@@ -518,10 +527,8 @@ class ByteArray {
       throw new RangeError("Length can't be greater than 65535")
     }
 
-    this.expand(length)
     this.writeUnsignedShort(length)
-    this.buffer.write(value, this.position, length)
-    this.position += length
+    this.writeMultiByte(value)
   }
 
   /**

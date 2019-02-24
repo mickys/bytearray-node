@@ -6,6 +6,24 @@ This is a Node.js implementation of the Actionscript 3 ByteArray, supporting AMF
 
 `npm install bytearray-node`
 
+# Usage
+
+This library is the same as the ByteArray in Actionscript 3.
+
+```javascript
+const ByteArray = require("bytearray-node")
+
+const ba = new ByteArray()
+
+ba.writeByte(1)
+
+ba.position = 0
+
+console.log(ba.readByte()) // 1
+```
+
+For more tests and examples, see `/test/`.
+
 # Specification
 
 ### Unsupported methods
@@ -30,40 +48,3 @@ This is a Node.js implementation of the Actionscript 3 ByteArray, supporting AMF
 - The endian is defined as a boolean (Default = true, true = BE, false = LE)
 - compressionLevel (Default = 9, Range= -1/9, **ZLIB only**)
 - You can construct a new ByteArray with a buffer or array
-
-# Examples
-
-`For more examples, see /test/`
-
-This library fully supports AMF0 and class aliases. Below is a simple illustration.
-
-```javascript
-// Person.js
-module.exports = class Person {
-  constructor(name, age) {
-    this.name = name
-    this.age = age
-  }
-
-  get mikeAge() {
-    if (this.name === "Mike") {
-      return this.age
-    }
-  }
-}
-
-// Main.js
-const ByteArray = require("bytearray-node")
-const Person = require("./Person")
-
-const ba = new ByteArray()
-
-ba.registerClassAlias("com.person", Person)
-ba.writeObject(new Person("Mike", 30))
-ba.position = 0
-
-const person = ba.readObject() // Person { name: 'Mike', age: 30 }
-
-person instanceof Person // true
-person.mikeAge // 30
-```
