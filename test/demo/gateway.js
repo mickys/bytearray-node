@@ -8,6 +8,7 @@ const ByteArray = require("../../src/")
  * @param {String} host - The host to listen on
  */
 function start(port = 8081, host = "127.0.0.1") {
+  const methods = require("./methods")
   const server = require("http").createServer()
 
   server.addListener("request", onRequest)
@@ -68,10 +69,18 @@ function start(port = 8081, host = "127.0.0.1") {
             }
 
             requestPacket.messages.push(message)
+
+            let value = ""
+
+            // Check if the requestURI exists
+            if (methods[message.requestURI]) {
+              value = methods[message.requestURI]()
+            }
+
             responsePacket.messages.push({
               requestURI: message.responseURI + "/onResult",
               responseURI: "",
-              value: "Pong!" // Reply to requestPacket.value, which is Ping!
+              value
             })
           }
 
