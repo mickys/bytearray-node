@@ -46,5 +46,4 @@ For more tests and examples, see `/test/`.
 - You can use the uint29 methods by constructing a new ByteArray
 - You can use registerClassAlias by constructing a new ByteArray
 - The endian is defined as a boolean (Default = true, true = BE, false = LE)
-- compressionLevel (Default = 9, Range= -1/9, **ZLIB only**)
 - You can construct a new ByteArray with a buffer or array

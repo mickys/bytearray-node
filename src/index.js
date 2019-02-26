@@ -2,12 +2,14 @@
 
 const zlib = require("zlib")
 const iconv = require("iconv-lite")
+
 const AMF0 = require("./AMF0")
 
 class ByteArray {
   /**
    * Construct a new ByteArray
    * @constructor
+   * @class
    * @param {Buffer|Array} buffer - Available argument to construct a new ByteArray with a buffer or array
    */
   constructor(buffer) {
@@ -26,11 +28,6 @@ class ByteArray {
      * @type {Boolean}
      */
     this.endian = true
-    /**
-     * The compression level for ZLIB
-     * @type {Number}
-     */
-    this.compressionLevel = 9
   }
 
   /**
@@ -108,6 +105,13 @@ class ByteArray {
   }
 
   /**
+   * Clears the reference array used in AMF0
+   */
+  clearReferences() {
+    AMF0.clearReferences()
+  }
+
+  /**
    * Clears the buffer and resets the length and position to 0
    */
   clear() {
@@ -123,11 +127,7 @@ class ByteArray {
     algorithm = algorithm.toLowerCase()
 
     if (algorithm === "zlib") {
-      if (this.compressionLevel < -1 || this.compressionLevel > 9) {
-        throw new Error(`Out of range compression level: ${this.compressionLevel}`)
-      }
-
-      this.buffer = zlib.deflateSync(this.buffer, { level: this.compressionLevel })
+      this.buffer = zlib.deflateSync(this.buffer, { level: 9 })
     } else if (algorithm === "deflate") {
       this.buffer = zlib.deflateRawSync(this.buffer)
     } else {

@@ -1,6 +1,6 @@
 "use strict"
 
-const references = []
+let references = []
 const classAliases = {}
 
 module.exports = class AMF0 {
@@ -13,6 +13,13 @@ module.exports = class AMF0 {
     if (classAliases[aliasName] !== classObject) {
       classAliases[aliasName] = classObject
     }
+  }
+
+  /**
+   * Clears the reference array used in AMF0
+   */
+  static clearReferences() {
+    references = []
   }
 
   /**
