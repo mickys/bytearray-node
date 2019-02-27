@@ -35,7 +35,6 @@ function start(port = 8081, host = "127.0.0.1") {
         const responseBA = new ByteArray()
         const requestPacket = { headers: {}, messages: [] }
         const responsePacket = { headers: {}, messages: [] }
-        const bytes = [195, 191, 195, 191, 195, 191, 195, 191, 2] // Equivalent to \xFF\xFF\xFF\xFF
 
         // Deserialize the requesting AMF0 packet first
         if (requestBA.readUnsignedShort() === 0) { // AMF0
@@ -48,7 +47,7 @@ function start(port = 8081, host = "127.0.0.1") {
               name: requestBA.readUTF(),
               mustUnderstand: requestBA.readBoolean(),
               length: requestBA.readUnsignedInt(),
-              value: requestBA.readObject()[0]
+              value: requestBA.readObject()
             }
 
             // This doesn't avoid duplicates, this is just a test anyway
@@ -65,7 +64,7 @@ function start(port = 8081, host = "127.0.0.1") {
               requestURI: requestBA.readUTF(),
               responseURI: requestBA.readUTF(),
               length: requestBA.readUnsignedInt(),
-              value: requestBA.readObject()[0]
+              value: requestBA.readObject()
             }
 
             requestPacket.messages.push(message)
@@ -78,12 +77,13 @@ function start(port = 8081, host = "127.0.0.1") {
             }
 
             responsePacket.messages.push({
-              requestURI: message.responseURI + "/onResult",
+              requestURI: message.responseURI,
               responseURI: "",
               value
             })
           }
 
+          // This doesn't print the /onResult on the requestURI
           console.log(`Received: ${JSON.stringify(requestPacket)}`)
           console.log(`Sending: ${JSON.stringify(responsePacket)}`)
 
@@ -95,7 +95,8 @@ function start(port = 8081, host = "127.0.0.1") {
             responseBA.clearReferences()
             responseBA.writeUTF(responsePacket.headers[i].name)
             responseBA.writeBoolean(responsePacket.headers[i].mustUnderstand)
-            for (let i = 0; i < bytes.length; i++) { responseBA.writeUnsignedByte(bytes[i]) }
+            responseBA.buffer = Buffer.concat([responseBA.buffer, Buffer.from("\xFF\xFF\xFF\xFF")])
+            responseBA.position += 8
             responseBA.writeObject(responsePacket.headers[i].value)
           }
 
@@ -103,9 +104,11 @@ function start(port = 8081, host = "127.0.0.1") {
 
           for (let i = 0; i < responsePacket.messages.length; i++) {
             responseBA.clearReferences()
-            responseBA.writeUTF(responsePacket.messages[i].requestURI)
+            responseBA.writeUTF(responsePacket.messages[i].requestURI + "/onResult")
             responseBA.writeUTF(responsePacket.messages[i].responseURI)
-            for (let i = 0; i < bytes.length; i++) { responseBA.writeUnsignedByte(bytes[i]) }
+            responseBA.buffer = Buffer.concat([responseBA.buffer, Buffer.from("\xFF\xFF\xFF\xFF")])
+            responseBA.position += 8
+            responseBA.writeUnsignedByte(responsePacket.messages[i].requestURI.length)
             responseBA.writeObject(responsePacket.messages[i].value)
           }
 
