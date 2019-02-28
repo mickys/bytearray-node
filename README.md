@@ -24,7 +24,7 @@ console.log(ba.readByte()) // 1
 
 For more tests and examples, see `/test/`.
 
-# Specification
+# ByteArray specification
 
 ### Unsupported methods
 - LZMA compression/uncompression
@@ -47,3 +47,16 @@ For more tests and examples, see `/test/`.
 - You can use registerClassAlias by constructing a new ByteArray
 - The endian is defined as a boolean (Default = true, true = BE, false = LE)
 - You can construct a new ByteArray with a buffer or array
+
+# AMF0 specification
+
+### Unsupported methods
+- XML Document
+- AVMPlus marker (AMF3 switch)
+- The writing of Strict Arrays (ECMA Arrays are the standard)
+
+### Supported functionalities to note
+- Typed objects are returned as a class
+- registerClassAlias is supported
+- Long strings are supported
+- Date serialization writes the timezone offset
