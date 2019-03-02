@@ -28,7 +28,7 @@ module.exports = class AMF0 {
    * @param {*} value - The value
    * @param {Boolean} strMarker - If the AMF0 string marker has to be written
    */
-  static serializeData(ba, value, strMarker = false) {
+  static serializeData(ba, value, strMarker = true) {
     const type = typeof value
 
     if (value === undefined) {
@@ -68,8 +68,8 @@ module.exports = class AMF0 {
         ba.writeByte(3)
 
         for (const key in value) {
-          this.serializeData(ba, key)
-          this.serializeData(ba, value[key], true)
+          this.serializeData(ba, key, false)
+          this.serializeData(ba, value[key])
         }
 
         ba.writeUTF("")
@@ -88,8 +88,8 @@ module.exports = class AMF0 {
         ba.writeUnsignedInt(value.length)
 
         for (const key in value) {
-          this.serializeData(ba, key)
-          this.serializeData(ba, value[key], true)
+          this.serializeData(ba, key, false)
+          this.serializeData(ba, value[key])
         }
 
         ba.writeUTF("")
@@ -124,8 +124,8 @@ module.exports = class AMF0 {
         }
 
         for (const key in value) {
-          this.serializeData(ba, key)
-          this.serializeData(ba, value[key], true)
+          this.serializeData(ba, key, false)
+          this.serializeData(ba, value[key])
         }
 
         ba.writeUTF("")

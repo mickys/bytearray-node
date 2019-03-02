@@ -53,7 +53,7 @@ For more tests and examples, see `/test/`.
 ### Unsupported methods
 - XML Document
 - AVMPlus marker (AMF3 switch)
-- The writing of Strict Arrays (ECMA Arrays are the standard)
+- The writing of Strict Arrays (ECMA Arrays are the standard, Strict Arrays are AMF0 packets only)
 
 ### Supported functionalities to note
 - Typed objects are returned as a class
