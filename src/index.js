@@ -10,7 +10,7 @@ class ByteArray {
    * Construct a new ByteArray
    * @constructor
    * @class
-   * @param {Buffer|Array} buffer - Available argument to construct a new ByteArray with a buffer or array
+   * @param {Buffer|Array} buffer
    */
   constructor(buffer) {
     /**
@@ -32,7 +32,7 @@ class ByteArray {
 
   /**
    * Checks if the end of the file was encountered
-   * @param {Number} value - The amount of bytes that needs to be available
+   * @param {Number} value
    */
   checkEOF(value) {
     if (this.bytesAvailable < value) {
@@ -42,7 +42,7 @@ class ByteArray {
 
   /**
    * Expands the buffer when needed
-   * @param {Number} value - The amount to expand the buffer
+   * @param {Number} value
    */
   expand(value) {
     if (this.bytesAvailable >= value) {
@@ -60,7 +60,7 @@ class ByteArray {
 
   /**
    * Returns the length of the buffer
-   * @returns {Number} - The length of the buffer
+   * @returns {Number}
    */
   get length() {
     return this.buffer.length
@@ -68,7 +68,7 @@ class ByteArray {
 
   /**
    * Sets the length of the buffer
-   * @param {Number} value - The length to set the buffer to
+   * @param {Number} value
    */
   set length(value) {
     if (value === 0) {
@@ -89,7 +89,7 @@ class ByteArray {
 
   /**
    * Returns the amount of bytes available
-   * @returns {Number} - The amount of bytes available
+   * @returns {Number}
    */
   get bytesAvailable() {
     return this.length - this.position
@@ -97,8 +97,8 @@ class ByteArray {
 
   /**
    * Registers a class alias
-   * @param {String} aliasName - The alias name to serialize
-   * @param {Function} classObject - The class to register as an alias
+   * @param {String} aliasName
+   * @param {Function} classObject
    */
   registerClassAlias(aliasName, classObject) {
     AMF0.registerClassAlias(aliasName.toString(), classObject)
@@ -121,7 +121,7 @@ class ByteArray {
 
   /**
    * Compresses the buffer
-   * @param {String} algorithm - The algorithm to compress the buffer
+   * @param {String} algorithm
    */
   compress(algorithm) {
     algorithm = algorithm.toLowerCase()
@@ -153,7 +153,7 @@ class ByteArray {
 
   /**
    * Reads a boolean
-   * @returns {Boolean} - The value
+   * @returns {Boolean}
    */
   readBoolean() {
     return this.readByte() !== 0
@@ -161,7 +161,7 @@ class ByteArray {
 
   /**
    * Reads a signed byte
-   * @returns {Number} - The value
+   * @returns {Number}
    */
   readByte() {
     this.checkEOF(1)
@@ -170,9 +170,9 @@ class ByteArray {
 
   /**
    * Reads multiple signed bytes from a ByteArray
-   * @param {ByteArray} bytes - The ByteArray to read data into
-   * @param {Number} offset - The position where to start reading
-   * @param {Number} length - The number of bytes to read
+   * @param {ByteArray} bytes
+   * @param {Number} offset
+   * @param {Number} length
    */
   readBytes(bytes, offset = 0, length = 0) {
     const available = this.bytesAvailable
@@ -198,7 +198,7 @@ class ByteArray {
 
   /**
    * Reads a double
-   * @returns {Number} - The value
+   * @returns {Number}
    */
   readDouble() {
     this.checkEOF(8)
@@ -209,7 +209,7 @@ class ByteArray {
 
   /**
    * Reads a float
-   * @returns {Number} - The value
+   * @returns {Number}
    */
   readFloat() {
     this.checkEOF(4)
@@ -220,7 +220,7 @@ class ByteArray {
 
   /**
    * Reads a signed int
-   * @returns {Number} - The value
+   * @returns {Number}
    */
   readInt() {
     this.checkEOF(4)
@@ -231,9 +231,9 @@ class ByteArray {
 
   /**
    * Reads a multibyte string
-   * @param {Length} length - The amount of bytes to read
-   * @param {String} charSet - The character set to decode the bytes from
-   * @returns {String} - The value
+   * @param {Length} length
+   * @param {String} charSet
+   * @returns {String}
    */
   readMultiByte(length, charSet = "utf8") {
     this.checkEOF(length)
@@ -249,7 +249,7 @@ class ByteArray {
 
   /**
    * Reads an object from the buffer, encoded in AMF serialized format
-   * @returns {*} - The value
+   * @returns {*}
    */
   readObject() {
     this.endian = true
@@ -258,7 +258,7 @@ class ByteArray {
 
   /**
    * Reads a signed short
-   * @returns {Number} - The value
+   * @returns {Number}
    */
   readShort() {
     this.checkEOF(2)
@@ -269,7 +269,7 @@ class ByteArray {
 
   /**
    * Reads an unsigned byte
-   * @returns {Number} - The value
+   * @returns {Number}
    */
   readUnsignedByte() {
     this.checkEOF(1)
@@ -278,7 +278,7 @@ class ByteArray {
 
   /**
    * Reads an unsigned int
-   * @returns {Number} - The value
+   * @returns {Number}
    */
   readUnsignedInt() {
     this.checkEOF(4)
@@ -289,7 +289,7 @@ class ByteArray {
 
   /**
    * Reads an unsigned short
-   * @returns {Number} - The value
+   * @returns {Number}
    */
   readUnsignedShort() {
     this.checkEOF(2)
@@ -300,7 +300,7 @@ class ByteArray {
 
   /**
    * Reads a UTF-8 string
-   * @returns {String} - The value
+   * @returns {String}
    */
   readUTF() {
     return this.readMultiByte(this.readUnsignedShort())
@@ -308,48 +308,16 @@ class ByteArray {
 
   /**
    * Reads multiple UTF-8 bytes
-   * @param {Number} length - The amount of bytes to read
-   * @returns {String} - The value
+   * @param {Number} length
+   * @returns {String}
    */
   readUTFBytes(length) {
     return this.readMultiByte(length)
   }
 
   /**
-   * Reads an unsigned int29
-   * @returns {Number} - The value
-   */
-  readUnsignedInt29() {
-    let byte = this.readUnsignedByte()
-    let value
-
-    if (byte < 128) {
-      return byte
-    }
-
-    value = (byte & 0x7F) << 7
-    byte = this.readUnsignedByte()
-
-    if (byte < 128) {
-      return (value | byte)
-    }
-
-    value = (value | (byte & 0x7F)) << 7
-    byte = this.readUnsignedByte()
-
-    if (byte < 128) {
-      return (value | byte)
-    }
-
-    value = (value | (byte & 0x7F)) << 8
-    byte = this.readUnsignedByte()
-
-    return (value | byte)
-  }
-
-  /**
    * Converts the buffer to JSON
-   * @returns {JSON} - The value
+   * @returns {JSON}
    */
   toJSON() {
     return this.buffer.toJSON()
@@ -357,7 +325,7 @@ class ByteArray {
 
   /**
    * Converts the buffer to a string
-   * @returns {String} - The value
+   * @returns {String}
    */
   toString() {
     return this.buffer.toString("utf8")
@@ -365,7 +333,7 @@ class ByteArray {
 
   /**
    * Decompresses the buffer
-   * @param {String} algorithm - The algorithm to uncompress the buffer
+   * @param {String} algorithm
    */
   uncompress(algorithm) {
     algorithm = algorithm.toLowerCase()
@@ -387,7 +355,7 @@ class ByteArray {
 
   /**
    * Writes a boolean
-   * @param {Boolean} value - The value
+   * @param {Boolean} value
    */
   writeBoolean(value) {
     this.writeByte(value ? 1 : 0)
@@ -395,7 +363,7 @@ class ByteArray {
 
   /**
    * Writes a signed byte
-   * @param {Number} value - The value
+   * @param {Number} value
    */
   writeByte(value) {
     this.expand(1)
@@ -404,9 +372,9 @@ class ByteArray {
 
   /**
    * Writes multiple signed bytes to a ByteArray
-   * @param {ByteArray} bytes - The ByteArray to write data from
-   * @param {Number} offset - The position where to start writing
-   * @param {Number} length - The number of bytes to write
+   * @param {ByteArray} bytes
+   * @param {Number} offset
+   * @param {Number} length
    */
   writeBytes(bytes, offset = 0, length = 0) {
     if (length === 0) {
@@ -424,7 +392,7 @@ class ByteArray {
 
   /**
   * Writes a double
-  * @param {Number} value - The value
+  * @param {Number} value
   */
   writeDouble(value) {
     this.expand(8)
@@ -434,7 +402,7 @@ class ByteArray {
 
   /**
    * Writes a float
-   * @param {Number} value - The value
+   * @param {Number} value
    */
   writeFloat(value) {
     this.expand(4)
@@ -444,7 +412,7 @@ class ByteArray {
 
   /**
    * Writes a signed int
-   * @param {Number} value - The value
+   * @param {Number} value
    */
   writeInt(value) {
     this.expand(4)
@@ -454,8 +422,8 @@ class ByteArray {
 
   /**
    * Writes a multibyte string
-   * @param {String} value - The value
-   * @param {String} charSet - The character set to ecode the bytes to
+   * @param {String} value
+   * @param {String} charSet
    */
   writeMultiByte(value, charSet = "utf8") {
     const length = Buffer.byteLength(value)
@@ -470,7 +438,7 @@ class ByteArray {
 
   /**
    * Writes an object into the buffer in AMF serialized format
-   * @param {*} value - The value
+   * @param {*} value
    */
   writeObject(value) {
     this.endian = true
@@ -479,7 +447,7 @@ class ByteArray {
 
   /**
    * Writes a signed short
-   * @param {Number} value - The value
+   * @param {Number} value
    */
   writeShort(value) {
     this.expand(2)
@@ -489,7 +457,7 @@ class ByteArray {
 
   /**
    * Writes an unsigned byte
-   * @param {Number} value - The value
+   * @param {Number} value
    */
   writeUnsignedByte(value) {
     this.expand(1)
@@ -498,7 +466,7 @@ class ByteArray {
 
   /**
    * Writes an unsigned int
-   * @param {Number} value - The value
+   * @param {Number} value
    */
   writeUnsignedInt(value) {
     this.expand(4)
@@ -508,7 +476,7 @@ class ByteArray {
 
   /**
    * Writes an unsigned short
-   * @param {Number} value - The value
+   * @param {Number} value
    */
   writeUnsignedShort(value) {
     this.expand(2)
@@ -518,7 +486,7 @@ class ByteArray {
 
   /**
    * Writes a UTF-8 string
-   * @param {String} value - The value
+   * @param {String} value
    */
   writeUTF(value) {
     const length = Buffer.byteLength(value)
@@ -533,34 +501,10 @@ class ByteArray {
 
   /**
    * Writes multiple UTF-8 bytes
-   * @param {String} value - The value
+   * @param {String} value
    */
   writeUTFBytes(value) {
     this.writeMultiByte(value)
-  }
-
-  /**
-   * Writes an unsigned int29
-   * @param {Number} value - The value
-   */
-  writeUnsignedInt29(value) {
-    if (value < 0x80) {
-      this.writeUnsignedByte(value)
-    } else if (value < 0x4000) {
-      this.writeUnsignedByte(((value >> 7) & 0x7F) | 0x80)
-      this.writeUnsignedByte(value & 0x7F)
-    } else if (value < 0x200000) {
-      this.writeUnsignedByte(((value >> 14) & 0x7F) | 0x80)
-      this.writeUnsignedByte(((value >> 7) & 0x7F) | 0x80)
-      this.writeUnsignedByte(value & 0x7F)
-    } else if (value < 0x40000000) {
-      this.writeUnsignedByte(((value >> 22) & 0x7F) | 0x80)
-      this.writeUnsignedByte(((value >> 15) & 0x7F) | 0x80)
-      this.writeUnsignedByte(((value >> 8) & 0x7F) | 0x80)
-      this.writeUnsignedByte(value & 0xFF)
-    } else {
-      throw new RangeError(`The value "${value}" is out of range`)
-    }
   }
 }
 

@@ -6,8 +6,8 @@ const classAliases = {}
 module.exports = class AMF0 {
   /**
    * Registers a class alias
-   * @param {String} aliasName - The alias name to serialize
-   * @param {Class} classObject - The class to register as an alias
+   * @param {String} aliasName
+   * @param {Class} classObject
    */
   static registerClassAlias(aliasName, classObject) {
     if (classAliases[aliasName] !== classObject) {
@@ -23,10 +23,10 @@ module.exports = class AMF0 {
   }
 
   /**
-   * Serializes data using the AMF0 protocol
-   * @param {ByteArray} ba - The ByteArray to write the bytes to
-   * @param {*} value - The value
-   * @param {Boolean} strMarker - If the AMF0 string marker has to be written
+   * Serializes data using the AMF0 format
+   * @param {ByteArray} ba
+   * @param {*} value
+   * @param {Boolean} strMarker
    */
   static serializeData(ba, value, strMarker = true) {
     const type = typeof value
@@ -139,9 +139,9 @@ module.exports = class AMF0 {
   }
 
   /**
-   * Deserializes data using the AMF0 protocol
-   * @param {ByteArray} ba - The ByteArray to read the bytes from
-   * @returns {*} - The value
+   * Deserializes data using the AMF0 format
+   * @param {ByteArray} ba
+   * @returns {*}
    */
   static deserializeData(ba) {
     const marker = ba.readByte()

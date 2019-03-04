@@ -38,12 +38,9 @@ For more tests and examples, see `/test/`.
 ### Extra supported methods
 - writeUnsignedByte
 - writeUnsignedShort
-- writeUnsignedInt29
-- readUnsignedInt29
 
 ### Extra supported properties
 - More character sets for writeMultiByte/readMultiByte thanks to **iconv-lite**
-- You can use the uint29 methods by constructing a new ByteArray
 - You can use registerClassAlias by constructing a new ByteArray
 - The endian is defined as a boolean (Default = true, true = BE, false = LE)
 - You can construct a new ByteArray with a buffer or array
